@@ -34,14 +34,20 @@ def main():
 
     ### modeling ###
     model = Sequential()
-    model.add(Dense(80, activation='relu'))
+    model.add(Dense(100, activation='relu'))
+    # model.add(Dense(80, activation='relu'))
+    model.add(Dropout(0.5))
     model.add(Dense(50, activation='relu'))
-    model.add(Dense(30, activation='relu'))
+    model.add(Dropout(0.5))
+    # model.add(Dense(30, activation='relu'))
     model.add(Dense(10, activation='relu'))
-    # model.add(Dense(100, activation='tanh'))
-    # model.add(Dense(50, activation='tanh'))
-    # model.add(Dense(30, activation='tanh'))
-    # model.add(Dense(10, activation='tanh')) 
+    model.add(Dropout(0.5))
+    # for _ in range(10):
+    #     model.add(Dense(100, activation='relu'))
+    # # model.add(Dense(100, activation='relu'))
+    # model.add(Dense(50, activation='relu'))
+    # model.add(Dense(30, activation='relu'))
+    # model.add(Dense(10, activation='relu')) 
     model.add(Dense(3, activation='linear'))      
 
     optimizer = optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=True)
