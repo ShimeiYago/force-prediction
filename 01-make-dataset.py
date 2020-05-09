@@ -68,7 +68,7 @@ def main():
 
     # save
     print(f'\nx: {x.shape}\ny: {y.shape}')
-    outpath = os.path.join(OUTDIR, f'trj{args.i}.npz')
+    outpath = os.path.join(OUTDIR, f'trj{args.i:0=3}.npz')
     np.savez(outpath, x=x, y=y)
 
 

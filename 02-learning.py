@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dropout
 from tensorflow.keras import optimizers
 from tensorflow.keras.callbacks import EarlyStopping
 
@@ -34,14 +35,14 @@ def main():
 
     ### modeling ###
     model = Sequential()
-    model.add(Dense(100, activation='relu'))
+    # model.add(Dense(100, activation='relu'))
     # model.add(Dense(80, activation='relu'))
-    model.add(Dropout(0.5))
+    # model.add(Dropout(0.5))
     model.add(Dense(50, activation='relu'))
-    model.add(Dropout(0.5))
-    # model.add(Dense(30, activation='relu'))
+    # model.add(Dropout(0.5))
+    model.add(Dense(30, activation='relu'))
     model.add(Dense(10, activation='relu'))
-    model.add(Dropout(0.5))
+    # model.add(Dropout(0.5))
     # for _ in range(10):
     #     model.add(Dense(100, activation='relu'))
     # # model.add(Dense(100, activation='relu'))
