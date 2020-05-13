@@ -18,6 +18,7 @@ def main():
     parser = argparse.ArgumentParser(description='This script parse xvg-files and output npz-file')
     parser.add_argument('-c', '--coord', default='input/coord.xvg', help='xvg file path describing coordinates of trajectory')
     parser.add_argument('-f', '--force', default='input/force.xvg', help='xvg file path describing forces of trajectory')
+    parser.add_argument('-i', default=0, type=int, help='start index of atom')
     parser.add_argument('-w', default=4, type=int, help='max wokers of multi-process')
     args = parser.parse_args()
 
@@ -36,7 +37,7 @@ def main():
     
 
     X, Y = [], []
-    for i in range(START_INDEX, coords.shape[1]):
+    for i in range(args.i, coords.shape[1]):
         ### discriptor_generater ###
         discriptor_generator = DiscriptorGenerator(coords, i, CUTOFF_RADIUS)
 
