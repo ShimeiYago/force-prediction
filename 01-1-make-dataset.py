@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 
-OUTDIR = 'workspace/01-make-dataset'
+OUTDIR = 'workspace/01-make-dataset/allatom'
 CUTOFF_RADIUS = 1.0
-FROM_INDEX = 1
-TO_INDEX = -1
-
+START_INDEX = 0
 
 import argparse
 import os
@@ -27,8 +25,8 @@ def main():
     os.makedirs(OUTDIR, exist_ok=True)
 
     # read xvg-files
-    coords = read_xvg(args.coord)[FROM_INDEX:TO_INDEX]
-    forces = read_xvg(args.force)[FROM_INDEX:TO_INDEX]
+    coords = read_xvg(args.coord)
+    forces = read_xvg(args.force)
 
 
     # check shape
@@ -38,7 +36,7 @@ def main():
     
 
     X, Y = [], []
-    for i in range(coords.shape[0]):
+    for i in range(START_INDEX, coords.shape[1]):
         ### discriptor_generater ###
         discriptor_generator = DiscriptorGenerator(coords, i, CUTOFF_RADIUS)
 
@@ -55,32 +53,18 @@ def main():
 
         ### x (coords) ###
         x = [d for d,_ in results]
+        x = zero_padding_array(x)
         X.extend(x)
 
         ### y (forces) ###
-        y = [f for _,f in results]
+        y = np.array([f for _,f in results])
         Y.extend(y)
 
         print('')
 
-        
-    x = zero_padding_array(X)
-    y = np.array(Y)
-
-    ### normalize ###
-    x = x.reshape(-1,4)
-    x = (x - np.mean(x,axis=0)) / np.std(x,axis=0)
-    x = x.reshape(y.shape[0], -1)
-
-    y = (y - np.mean(y.reshape(-1),axis=0)) / np.std(y.reshape(-1),axis=0)
-
-
-    # save
-    print(f'x: {x.shape}\ny: {y.shape}')
-    outpath = os.path.join(OUTDIR, 'dataset.npz')
-    np.savez(outpath, x=x, y=y)
-
-
+        # save
+        outpath = os.path.join(OUTDIR, f'trj{i:0=3}.npz')
+        np.savez(outpath, x=x, y=y)
 
 
 
