@@ -1,5 +1,6 @@
 input/
 workspace/
+DNNmodel.py
 
 # Created by https://www.gitignore.io/api/macos,python,visualstudiocode
 # Edit at https://www.gitignore.io/?templates=macos,python,visualstudiocode
