@@ -2,7 +2,6 @@
 
 OUTDIR = 'workspace/01-make-dataset/allatom'
 CUTOFF_RADIUS = 1.0
-START_INDEX = 0
 
 import argparse
 import os
