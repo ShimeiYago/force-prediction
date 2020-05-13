@@ -2,6 +2,9 @@
 
 OUTDIR = 'workspace/01-make-dataset'
 CUTOFF_RADIUS = 1.0
+FROM_INDEX = 1
+TO_INDEX = -1
+
 
 import argparse
 import os
@@ -17,7 +20,6 @@ def main():
     parser = argparse.ArgumentParser(description='This script parse xvg-files and output npz-file')
     parser.add_argument('-c', '--coord', default='input/coord.xvg', help='xvg file path describing coordinates of trajectory')
     parser.add_argument('-f', '--force', default='input/force.xvg', help='xvg file path describing forces of trajectory')
-    parser.add_argument('-i', required=True, type=int, help='C-alpha index')
     parser.add_argument('-w', default=4, type=int, help='max wokers of multi-process')
     args = parser.parse_args()
 
@@ -25,8 +27,8 @@ def main():
     os.makedirs(OUTDIR, exist_ok=True)
 
     # read xvg-files
-    coords = read_xvg(args.coord)
-    forces = read_xvg(args.force)
+    coords = read_xvg(args.coord)[FROM_INDEX:TO_INDEX]
+    forces = read_xvg(args.force)[FROM_INDEX:TO_INDEX]
 
 
     # check shape
@@ -35,28 +37,35 @@ def main():
         sys.exit()
     
 
-    ### discriptor_generater ###
-    discriptor_generator = DiscriptorGenerator(coords, args.i, CUTOFF_RADIUS)
+    X, Y = [], []
+    for i in range(coords.shape[0]):
+        ### discriptor_generater ###
+        discriptor_generator = DiscriptorGenerator(coords, i, CUTOFF_RADIUS)
 
 
-    ### parallel process ###
-    myprocess = MyProcess(discriptor_generator, coords.shape[0])
-    with ProcessPoolExecutor(max_workers=args.w) as executor:
-        futures = []
-        for step in range(coords.shape[0]):
-            futures.append(executor.submit(myprocess, step, coords[step], args.i, forces[step, args.i]))
+        ### parallel process ###
+        myprocess = MyProcess(discriptor_generator, coords.shape[0], i)
+        with ProcessPoolExecutor(max_workers=args.w) as executor:
+            futures = []
+            for step in range(coords.shape[0]):
+                futures.append(executor.submit(myprocess, step, coords[step], i, forces[step, i]))
 
-    results = [f.result() for f in futures]
-
-
-    ### x (coords) ###
-    x = [d for d,_ in results]
-    x = zero_padding_array(x)
+        results = [f.result() for f in futures]
 
 
-    ### y (forces) ###
-    y = np.array([f for _,f in results])
+        ### x (coords) ###
+        x = [d for d,_ in results]
+        X.extend(x)
 
+        ### y (forces) ###
+        y = [f for _,f in results]
+        Y.extend(y)
+
+        print('')
+
+        
+    x = zero_padding_array(X)
+    y = np.array(Y)
 
     ### normalize ###
     x = x.reshape(-1,4)
@@ -67,8 +76,8 @@ def main():
 
 
     # save
-    print(f'\nx: {x.shape}\ny: {y.shape}')
-    outpath = os.path.join(OUTDIR, f'trj{args.i:0=3}.npz')
+    print(f'x: {x.shape}\ny: {y.shape}')
+    outpath = os.path.join(OUTDIR, 'dataset.npz')
     np.savez(outpath, x=x, y=y)
 
 
