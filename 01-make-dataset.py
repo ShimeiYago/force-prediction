@@ -89,7 +89,7 @@ def zero_padding_array(x:list):
 
     x = np.array([np.pad(arr, [(0,maxlen-arr.shape[0]), (0,0)], 'constant') 
            if arr.shape[0] != 0 
-           else np.array([0,0,0,0]*maxlen) 
+           else np.array([[0,0,0,0]]*maxlen) 
            for arr in x
     ])
 
