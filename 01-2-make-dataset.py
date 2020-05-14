@@ -16,7 +16,6 @@ def main():
         if i in EXCEPTION_INDEX:
             continue
 
-        
         npz = np.load(os.path.join(OUTDIR, f'trj{i:0=3}.npz'))
         x.extend(npz['x'])
         y.extend(npz['y'])
@@ -24,7 +23,7 @@ def main():
 
 
     x = zero_padding_array(x)
-    y = np.array(y)
+    y = np.array(y, dtype='float32')
 
 
     ### normalize ###
@@ -46,7 +45,7 @@ def zero_padding_array(x:list):
     maxlen = max([len(li) for li in x])
 
     x = [np.pad(arr, [(0,maxlen-arr.shape[0]), (0,0)], 'constant') for arr in x]
-    x = np.array(x)
+    x = np.array(x, dtype='float32')
 
     return x
 

@@ -32,7 +32,6 @@ def main():
         print("shapes of coord and force files must match")
         sys.exit()
 
-    X, Y = [], []
     for i in range(args.i, coords.shape[1]):
         # discriptor_generater
         discriptor_generator = DiscriptorGenerator(coords, i, CUTOFF_RADIUS)
@@ -49,11 +48,9 @@ def main():
         # x (coords)
         x = [d for d,_ in results]
         x = zero_padding_array(x)
-        X.extend(x)
 
         # y (forces)
-        y = np.array([f for _,f in results])
-        Y.extend(y)
+        y = np.array([f for _,f in results], dtype='float32')
 
         print('')
 
@@ -63,7 +60,7 @@ def main():
 
 
 def read_xvg(filepath: str) -> np.ndarray:
-    trj = np.loadtxt(filepath, comments=['#', '@'], delimiter='\t')[:, 1:]
+    trj = np.loadtxt(filepath, comments=['#', '@'], delimiter='\t', dtype='float32')[:, 1:]
 
     trj = trj.reshape(trj.shape[0], -1, 3)
 
@@ -75,9 +72,9 @@ def zero_padding_array(x: list):
 
     x = np.array([np.pad(arr, [(0,maxlen-arr.shape[0]), (0,0)], 'constant') 
         if arr.shape[0] != 0 
-        else np.array([[0,0,0,0]]*maxlen) 
+        else [[0,0,0,0]]*maxlen
         for arr in x
-    ])
+    ], dtype='float32')
 
     return x
 
