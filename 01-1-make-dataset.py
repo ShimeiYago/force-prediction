@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-OUTDIR = 'workspace/01-make-dataset/allatom'
-CUTOFF_RADIUS = 1.0
-
 import argparse
 import os
 import sys
@@ -11,6 +8,9 @@ from concurrent.futures import ProcessPoolExecutor
 
 from utils import DiscriptorGenerator
 from utils import MyProcess
+
+OUTDIR = 'workspace/01-make-dataset/allatom'
+CUTOFF_RADIUS = 1.0
 
 
 def main():
@@ -21,27 +21,23 @@ def main():
     parser.add_argument('-w', default=4, type=int, help='max wokers of multi-process')
     args = parser.parse_args()
 
-
     os.makedirs(OUTDIR, exist_ok=True)
 
     # read xvg-files
     coords = read_xvg(args.coord)
     forces = read_xvg(args.force)
 
-
     # check shape
     if coords.shape != forces.shape:
         print("shapes of coord and force files must match")
         sys.exit()
-    
 
     X, Y = [], []
     for i in range(args.i, coords.shape[1]):
-        ### discriptor_generater ###
+        # discriptor_generater
         discriptor_generator = DiscriptorGenerator(coords, i, CUTOFF_RADIUS)
 
-
-        ### parallel process ###
+        # parallel process
         myprocess = MyProcess(discriptor_generator, coords.shape[0], i)
         with ProcessPoolExecutor(max_workers=args.w) as executor:
             futures = []
@@ -50,13 +46,12 @@ def main():
 
         results = [f.result() for f in futures]
 
-
-        ### x (coords) ###
+        # x (coords)
         x = [d for d,_ in results]
         x = zero_padding_array(x)
         X.extend(x)
 
-        ### y (forces) ###
+        # y (forces)
         y = np.array([f for _,f in results])
         Y.extend(y)
 
@@ -67,21 +62,22 @@ def main():
         np.savez(outpath, x=x, y=y)
 
 
-
-def read_xvg(filepath:str) -> np.ndarray:
+def read_xvg(filepath: str) -> np.ndarray:
     trj = np.loadtxt(filepath, comments=['#', '@'], delimiter='\t')[:, 1:]
 
     trj = trj.reshape(trj.shape[0], -1, 3)
-    
+
     return trj
 
 
-
-def zero_padding_array(x:list):
+def zero_padding_array(x: list):
     maxlen = max([len(li) for li in x])
 
-    x = [np.pad(arr, [(0,maxlen-arr.shape[0]), (0,0)], 'constant') for arr in x]
-    x = np.array(x)
+    x = np.array([np.pad(arr, [(0,maxlen-arr.shape[0]), (0,0)], 'constant') 
+        if arr.shape[0] != 0 
+        else np.array([0,0,0,0]*maxlen) 
+        for arr in x
+    ])
 
     return x
 
