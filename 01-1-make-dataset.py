@@ -11,6 +11,7 @@ from utils import MyProcess
 
 OUTDIR = 'workspace/01-make-dataset/allatom'
 CUTOFF_RADIUS = 1.0
+DTYPE = 'float32'
 
 
 def main():
@@ -50,7 +51,7 @@ def main():
         x = zero_padding_array(x)
 
         # y (forces)
-        y = np.array([f for _,f in results], dtype='float32')
+        y = np.array([f for _,f in results], dtype=DTYPE)
 
         print('')
 
@@ -60,7 +61,7 @@ def main():
 
 
 def read_xvg(filepath: str) -> np.ndarray:
-    trj = np.loadtxt(filepath, comments=['#', '@'], delimiter='\t', dtype='float32')[:, 1:]
+    trj = np.loadtxt(filepath, comments=['#', '@'], delimiter='\t', dtype=DTYPE)[:, 1:]
 
     trj = trj.reshape(trj.shape[0], -1, 3)
 
@@ -74,7 +75,7 @@ def zero_padding_array(x: list):
         if arr.shape[0] != 0 
         else [[0,0,0,0]]*maxlen
         for arr in x
-    ], dtype='float32')
+    ], dtype=DTYPE)
 
     return x
 

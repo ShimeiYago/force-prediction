@@ -4,6 +4,8 @@ OUTDIR = 'workspace/01-make-dataset/allatom'
 CUTOFF_RADIUS = 1.0
 N_ATOMS = 309
 EXCEPTION_INDEX = [0, 308]
+DTYPE = 'float32'
+
 
 import os
 import sys
@@ -23,7 +25,7 @@ def main():
 
 
     x = zero_padding_array(x)
-    y = np.array(y, dtype='float32')
+    y = np.array(y, dtype=DTYPE)
 
 
     ### normalize ###
@@ -45,7 +47,7 @@ def zero_padding_array(x:list):
     maxlen = max([len(li) for li in x])
 
     x = [np.pad(arr, [(0,maxlen-arr.shape[0]), (0,0)], 'constant') for arr in x]
-    x = np.array(x, dtype='float32')
+    x = np.array(x, dtype=DTYPE)
 
     return x
 
