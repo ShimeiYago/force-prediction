@@ -11,7 +11,7 @@ from utils import MyProcess
 
 OUTDIR = 'workspace/01-make-dataset/allatom'
 CUTOFF_RADIUS = 1.0
-DTYPE = 'float32'
+DTYPE = 'float64'
 
 
 def main():

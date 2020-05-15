@@ -12,6 +12,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', default="workspace/01-make-dataset/trj.npz", help='input trajectory (.npz)')
     parser.add_argument('-o', '--out', default="workspace/02-learning/history.npy", help='output file path(.npy)')
+    parser.add_argument('-e', '--epochs', type=int, default=100, help='epochs')
+    parser.add_argument('-b', '--batch', type=int, default=50, help='batch size')
     args = parser.parse_args()
 
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
@@ -31,7 +33,7 @@ def main():
 
     ### modeling ###
     hist = model.fit(x_train, t_train,
-                    epochs=1000, batch_size=50,
+                    epochs=args.epochs, batch_size=args.batch,
                     verbose=2,
                     validation_data=(x_val, t_val))
 
