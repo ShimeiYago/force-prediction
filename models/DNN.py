@@ -1,13 +1,11 @@
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import InputLayer, Dense, Dropout
-from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras import optimizers
 
 
-def model1(input_shape, learning_rate=0.001):
+def model1(input_dim, learning_rate=0.001):
     model = Sequential()
-    model.add(InputLayer(input_shape=input_shape))
-    model.add(Dense(100, activation='relu'))
+    model.add(Dense(100, input_dim=input_dim, activation='relu'))
     model.add(Dense(50, activation='relu'))
     model.add(Dense(30, activation='relu'))
     model.add(Dense(10, activation='relu'))
@@ -22,7 +20,6 @@ def model1(input_shape, learning_rate=0.001):
 
 def model2(input_dim, learning_rate=0.001):
     model = Sequential()
-    # model.add(InputLayer(input_shape=input_shape))
     model.add(Dense(200, input_dim=input_dim, activation='relu'))
     model.add(Dense(100, activation='relu'))
     model.add(Dense(50, activation='relu'))

@@ -8,7 +8,6 @@ import models.DNN as DNN
 
 OUTDIR_WEIGHT = "workspace/02-learning/weight"
 OUTDIR_HISTORY = "workspace/02-learning/history"
-LEARNING_RATE = 0.001
 
 
 def main():
