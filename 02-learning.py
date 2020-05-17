@@ -19,6 +19,7 @@ def main():
     parser.add_argument('-e', '--epochs', type=int, default=100, help='epochs')
     parser.add_argument('-b', '--batch', type=int, default=50, help='batch size')
     parser.add_argument('-i', '--learning_index', type=int, default=0, help='learning index')
+    parser.add_argument('-r', '--learning_rate', type=float, default=0.001, help='learning rate')
     args = parser.parse_args()
 
     # make dir
@@ -37,17 +38,18 @@ def main():
     # data split
     x_train, x_val, t_train, t_val = train_test_split(x, t,
                                                       test_size=0.2,
-                                                      shuffle=True)
+                                                      shuffle=True,
+                                                      random_state=1)
 
-    # learning
-    model = DNN.model2(input_dim=x.shape[1], learning_rate=LEARNING_RATE)
+    # model
+    model = DNN.model2(input_dim=x.shape[1], learning_rate=args.learning_rate)
 
     # take over previous weights
     if args.learning_index > 0:
         preindex = args.learning_index - 1
         model.load_weights(os.path.join(OUTDIR_WEIGHT, f'weight{preindex:0=3}.hdf5'))
     
-
+    # learning
     hist = model.fit(x_train, t_train,
                      epochs=args.epochs,
                      batch_size=args.batch,
