@@ -8,6 +8,7 @@ import models.DNN as DNN
 
 OUTDIR_WEIGHT = "workspace/02-learning/weight"
 OUTDIR_HISTORY = "workspace/02-learning/history"
+OUTDIR_OPTION = "workspace/02-learning/option"
 
 
 def main():
@@ -23,6 +24,9 @@ def main():
     history_path = os.path.join(OUTDIR_WEIGHT, f'history{args.learning_index:0=3}')
     os.makedirs(OUTDIR_WEIGHT, exist_ok=True)
     os.makedirs(OUTDIR_HISTORY, exist_ok=True)
+    os.makedirs(OUTDIR_OPTION, exist_ok=True)
+
+    save_options(args)
 
     # expranatory
     npz = np.load(args.data)
@@ -60,6 +64,13 @@ def main():
     # save history
     history_path = os.path.join(OUTDIR_HISTORY, f'history{args.learning_index:0=3}')
     np.save(history_path, hist.history)
+
+
+def save_options(args):
+    filepath = os.path.join(OUTDIR_OPTION, f'option{args.learning_index:0=3}.txt')
+    with open(filepath, mode='w') as f:
+        f.write(f'Number of epochs:\t{args.epochs}'
+                f'\nLearning Rate:\t{args.learning_rate}')
 
 
 if __name__ == '__main__':
