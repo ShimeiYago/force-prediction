@@ -4,8 +4,6 @@ import numpy as np
 import os
 import argparse
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.callbacks import LearningRateScheduler
-from tensorflow.keras.callbacks import ModelCheckpoint
 import models.DNN as DNN
 
 OUTDIR_WEIGHT = "workspace/02-learning/weight"
@@ -48,7 +46,7 @@ def main():
     if args.learning_index > 0:
         preindex = args.learning_index - 1
         model.load_weights(os.path.join(OUTDIR_WEIGHT, f'weight{preindex:0=3}.hdf5'))
-    
+
     # learning
     hist = model.fit(x_train, t_train,
                      epochs=args.epochs,
@@ -63,22 +61,6 @@ def main():
     # save history
     history_path = os.path.join(OUTDIR_HISTORY, f'history{args.learning_index:0=3}')
     np.save(history_path, hist.history)
-
-
-def get_learning_index():
-    objective_dirpath = os.path.join(OUTDIR, 'weights')
-    indexlist = [int(f) for f in os.listdir(objective_dirpath) 
-                 if os.path.isdir(os.path.join(objective_dirpath, f))]
-    
-    learning_index = 0
-    for i in range(1000):
-        if i in indexlist:
-            continue
-
-        learning_index = i
-        break
-
-    return learning_index
 
 
 if __name__ == '__main__':
