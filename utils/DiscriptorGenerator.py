@@ -2,8 +2,7 @@ import numpy as np
 
 class DiscriptorGenerator:
     def __init__(self, trj:np.ndarray, idx:int, cutoff_radius:float=1.0):
-        mean_struct = trj.mean(axis=0)
-        self.idx_a, self.idx_b = self._choose_nearest_2indexes(mean_struct, idx)
+        self.idx_a, self.idx_b = self._choose_nearest_2indexes(trj[0], idx)
 
         self.cutoff_radius = cutoff_radius
     
