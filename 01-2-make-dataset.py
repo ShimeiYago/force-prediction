@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 
-OUTDIR = 'workspace/01-make-dataset/allatom'
+import os
+import numpy as np
+
+INPUTDIR = 'workspace/01-preprocess'
+OUTDIR = 'workspace/02-make-dataset'
 CUTOFF_RADIUS = 1.0
 N_ATOMS = 309
 DTYPE = 'float64'
-
-
-import os
-import sys
-import numpy as np
 
 
 def main():    

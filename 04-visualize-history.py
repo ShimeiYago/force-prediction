@@ -5,8 +5,8 @@ import os
 import glob
 import matplotlib.pyplot as plt
 
-INPUTDIR = "workspace/02-learning/history"
-OUTDIR = "workspace/03-visualize-history"
+INPUTDIR = "workspace/03-learning/history"
+OUTDIR = "workspace/04-visualize-history"
 
 
 def main():

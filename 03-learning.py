@@ -6,14 +6,16 @@ import argparse
 from sklearn.model_selection import train_test_split
 import models.DNN as DNN
 
-OUTDIR_WEIGHT = "workspace/02-learning/weight"
-OUTDIR_HISTORY = "workspace/02-learning/history"
-OUTDIR_OPTION = "workspace/02-learning/option"
+INPUT_TRAIN = "workspace/02-make-dataset/training.npz"
+INPUT_VAL = "workspace/02-make-dataset/validation.npz"
+
+OUTDIR_WEIGHT = "workspace/03-learning/weight"
+OUTDIR_HISTORY = "workspace/03-learning/history"
+OUTDIR_OPTION = "workspace/03-learning/option"
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--data', default="workspace/01-make-dataset/allatom/dataset.npz", help='input trajectory (.npz)')
     parser.add_argument('-e', '--epochs', type=int, default=100, help='epochs')
     parser.add_argument('-b', '--batch', type=int, default=50, help='batch size')
     parser.add_argument('-i', '--learning_index', type=int, default=0, help='learning index')
@@ -28,22 +30,20 @@ def main():
 
     save_options(args)
 
-    # expranatory
-    npz = np.load(args.data)
-    x = npz['x']
-
-    # response
-    t = np.load(args.data)['y']
+    # training data
+    npz = np.load(INPUT_TRAIN)
+    x_train = npz['x']
+    t_train = npz['y']
     del npz
 
-    # data split
-    x_train, x_val, t_train, t_val = train_test_split(x, t,
-                                                      test_size=0.2,
-                                                      shuffle=True,
-                                                      random_state=1)
+    # validation data
+    npz = np.load(INPUT_VAL)
+    x_val = npz['x']
+    t_val = npz['y']
+    del npz
 
     # model
-    model = DNN.model2(input_dim=x.shape[1], learning_rate=args.learning_rate)
+    model = DNN.model2(input_dim=x_train.shape[1], learning_rate=args.learning_rate)
 
     # take over previous weights
     if args.learning_index > 0:

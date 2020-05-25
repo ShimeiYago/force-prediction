@@ -20,16 +20,20 @@ class DiscriptorGenerator:
 
         Ri = np.delete(Ri, obj=i, axis=0)
 
+        radius_list = [self.radius(Ri[j]) for j in range(Ri.shape[0])]
+
         # descriptor
         D = np.array([ \
-            [1/self.radius(Ri[j]), Ri[j,0]/self.radius(Ri[j]), Ri[j,1]/self.radius(Ri[j]), Ri[j,2]/self.radius(Ri[j])] \
+            [1/radius_list[j], Ri[j,0]/radius_list[j], Ri[j,1]/radius_list[j], Ri[j,2]/radius_list[j]] \
             for j in range(Ri.shape[0]) \
-            if self.radius(Ri[j])<=self.cutoff_radius \
+            if radius_list[j]<=self.cutoff_radius \
             ])
+        
+        # sort
+        D = np.sort(D, axis=0)[::-1]
         
         # also rotate force
         force = np.dot(force, rotation_martix)
-
         
         return D, force
 
