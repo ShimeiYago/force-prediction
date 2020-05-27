@@ -4,7 +4,7 @@ import numpy as np
 import os
 import argparse
 import tensorflow as tf
-from utils.DNNmodel import MyModel
+from utils_tf import MyModel
 
 INPUT_TRAIN = "workspace/02-make-dataset/training.npz"
 INPUT_VAL = "workspace/02-make-dataset/validation.npz"
