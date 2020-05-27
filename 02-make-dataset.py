@@ -20,6 +20,11 @@ def main():
 
     val_x_descriptor, val_x_atomindex, val_y = main_process('validation')
 
+    # zero padding
+    maxlen = max([len(li) for li in train_x_descriptor] + [len(li) for li in val_x_descriptor])
+    train_x_descriptor = zero_padding_array(train_x_descriptor, maxlen=maxlen)
+    val_x_descriptor = zero_padding_array(val_x_descriptor, maxlen=maxlen)
+
     # normalize x
     max_reciprocal_radius = max(
         max(train_x_descriptor.reshape(-1, 4)[:, 0]),
@@ -65,11 +70,10 @@ def main_process(name:str):
         y.extend(npz['y'])
         del npz
 
-    x_descriptor = zero_padding_array(x_descriptor)
     y = np.array(y, dtype=DTYPE)
 
     # x_atomindex
-    n_frames = x_descriptor.shape[0] // N_ATOMS
+    n_frames = y.shape[0] // N_ATOMS
     x_atomindex = np.array([[i]*n_frames for i in range(N_ATOMS)]).ravel()
     x_atomindex = np.identity(N_ATOMS)[x_atomindex]  # one-hot
 

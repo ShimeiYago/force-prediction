@@ -20,6 +20,7 @@ def main():
     parser = argparse.ArgumentParser(description='This script preprocess for deep learning. Parse xvg-files and output npz-file.')
     parser.add_argument('-i', '--inputs', action='append', nargs=2, metavar=('coord','force'), required=True, help='two xvg files')
     parser.add_argument('-v', '--val', action='store_true', default=False, help='process validation data (default is training)')
+    parser.add_argument('--init_time', default=0, type=int, help='initial time to use')
     parser.add_argument('-s', default=0, type=int, help='start index of atom')
     parser.add_argument('-w', default=4, type=int, help='max wokers of multi-process')
     args = parser.parse_args()
@@ -27,9 +28,9 @@ def main():
     name = 'training'
     if args.val:
         name = 'validation'
-    
+
     # read data
-    read_xvgs = ReadXVGs(DTYPE)
+    read_xvgs = ReadXVGs(args.init_time, DTYPE)
     coords, forces = read_xvgs(args.inputs)
 
     print(f'Processing {name} data.\nCoord:{coords.shape} Force:{forces.shape}\n')
