@@ -45,9 +45,11 @@ def main():
     # join x
     train_x_descriptor = train_x_descriptor.reshape(train_y.shape[0], -1)
     train_x = np.concatenate([train_x_descriptor, train_x_atomindex], axis=1)
+    del train_x_descriptor
 
     val_x_descriptor = val_x_descriptor.reshape(val_y.shape[0], -1)
     val_x = np.concatenate([val_x_descriptor, val_x_atomindex], axis=1)
+    del val_x_descriptor
 
 
     # save

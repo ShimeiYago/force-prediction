@@ -8,6 +8,8 @@ class MyModel(Model):
         super(MyModel, self).__init__()
         if model_number == 0:
             self.layers_list = self._model0(input_dim)
+        elif model_number == 1:
+            self.layers_list = self._model1(input_dim)
     
     def __call__(self, x):
         for layer in self.layers_list:
@@ -22,3 +24,13 @@ class MyModel(Model):
         outlayer = Dense(3, activation='linear')
 
         return [inlayer] + midlayers + [outlayer]
+
+    def _model1(self, input_dim):
+        middle_dims_list = [200, 100, 50, 10]
+
+        inlayer = Dense(middle_dims_list[0], input_dim=input_dim, activation='relu')
+        midlayers = [Dense(dim, activation='relu') for dim in middle_dims_list[1:]]
+        outlayer = Dense(3, activation='linear')
+
+        return [inlayer] + midlayers + [outlayer]
+

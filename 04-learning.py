@@ -17,11 +17,12 @@ FREQ_SAVE_MODEL = 10
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-e', '--epochs', type=int, default=100, help='epochs')
-    parser.add_argument('-b', '--batch', type=int, default=50, help='batch size')
-    parser.add_argument('--base_lr', type=float, default=0.001, help='base lr of Cyclical Learning Rate')
-    parser.add_argument('--max_lr', type=float, default=0.009, help='max lr of Cyclical Learning Rate')
+    parser.add_argument('-b', '--batch', type=int, default=100, help='batch size')
+    parser.add_argument('--lr', type=float, default=0.001, help='Learning Rate')
+    parser.add_argument('--clr', nargs=2, type=float, metavar=('base_lr', 'max_lr'), help='input base_lr and max_lr if use Cyclical Learning Rate')
     parser.add_argument('--model_number', type=int, default=0, help='choose Model number')
     args = parser.parse_args()
+
 
     # save path
     os.makedirs(OUTDIR, exist_ok=True)
@@ -84,11 +85,18 @@ def main():
 
         val_loss(v_loss)
 
-    ### learning ###
-    clr = CycleLearningRate(args.base_lr, args.max_lr, n_data, args.batch)
+    # ## learning rate # ##
+    if args.clr:
+        lr_generator = CycleLearningRate(args.clr[0], args.clr[1], n_data, args.batch)
+
+    else:
+        lr_generator = lambda: args.lr
+    
+
+    # ## learning ## #
     loss_history = []
     for epoch in range(args.epochs):
-        optimizer.lr = clr()
+        optimizer.lr = lr_generator()
         for x, t in train_ds:
             train_step(x, t)
 
@@ -110,16 +118,25 @@ def main():
         if (epoch+1) % FREQ_SAVE_MODEL == 0:
             weight_path = os.path.join(weights_dir, f'weights{epoch_str}')
             model.save_weights(weight_path)
+
+            np.savetxt(history_path, np.array(loss_history), delimiter=",", header="train loss,val_loss")
     
+    weight_path = os.path.join(weights_dir, f'weights{epoch_str}')
+    model.save_weights(weight_path)
+
     np.savetxt(history_path, np.array(loss_history), delimiter=",", header="train loss,val_loss")
 
 
 def save_options(args, fp):
     with open(fp, mode='w') as f:
         f.write(f'Number of epochs:\t{args.epochs}'
-                f'\nModel number:\t{args.model_number}'
-                f'\nbase lr:\t{args.base_lr}'
-                f'\nmax lr:\t{args.max_lr}')
+                f'\nModel number:\t{args.model_number}')
+
+        if args.clr:
+            f.write(f'\nbase lr:\t{args.clr[0]}'
+                    f'\nmax lr:\t{args.clr[1]}')
+        else:
+            f.write(f'\nlr:\t{args.lr}')
 
 
 def decide_outdir():
