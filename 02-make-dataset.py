@@ -10,8 +10,7 @@ INPUTDIR = 'workspace/01-preprocess'
 OUTDIR = 'workspace/02-make-dataset'
 CUTOFF_RADIUS = 1.0
 N_ATOMS = 309
-DTYPE = 'float64'
-
+DTYPE = 'float32'
 
 def main():
     parser = argparse.ArgumentParser(description='')
@@ -44,9 +43,12 @@ def main():
     # ## save x_train ## #
     train_x_descriptor, train_x_atomindex, _ = main_process('training', cut=[args.train_lower, args.train_upper], y_bool=False)
     # zero padding
-    train_x_descriptor = zero_padding_array(train_x_descriptor, maxlen=maxlen)
+    train_x_descriptor = zero_padding_array(train_x_descriptor, maxlen=maxlen, dtype=DTYPE)
+    # reshape
+    train_x_descriptor = train_x_descriptor.reshape(N_ATOMS, -1, train_x_descriptor.shape[1], train_x_descriptor.shape[2]).transpose(1,0,2,3).reshape(-1, train_x_descriptor.shape[1], train_x_descriptor.shape[2])
     # normalize x
     train_x_descriptor = train_x_descriptor / np.array([max_reciprocal_radius, 1, 1, 1])
+    train_x_descriptor = train_x_descriptor.astype(DTYPE)
     # join x
     train_x_descriptor = train_x_descriptor.reshape(train_n_data, -1)
     train_x_descriptor = np.concatenate([train_x_descriptor, train_x_atomindex], axis=1)
@@ -59,9 +61,12 @@ def main():
     # ## save x_val ## #
     val_x_descriptor, val_x_atomindex, _ = main_process('validation', cut=[args.val_lower, args.val_upper], y_bool=False)
     # zero padding
-    val_x_descriptor = zero_padding_array(val_x_descriptor, maxlen=maxlen)
+    val_x_descriptor = zero_padding_array(val_x_descriptor, maxlen=maxlen, dtype=DTYPE)
+    # reshape
+    val_x_descriptor = val_x_descriptor.reshape(N_ATOMS, -1, val_x_descriptor.shape[1], val_x_descriptor.shape[2]).transpose(1,0,2,3).reshape(-1, val_x_descriptor.shape[1], val_x_descriptor.shape[2])
     # normalize x
     val_x_descriptor = val_x_descriptor / np.array([max_reciprocal_radius, 1, 1, 1])
+    val_x_descriptor = val_x_descriptor.astype(DTYPE)
     # join x
     val_x_descriptor = val_x_descriptor.reshape(val_n_data, -1)
     val_x_descriptor = np.concatenate([val_x_descriptor, val_x_atomindex], axis=1)
@@ -110,6 +115,7 @@ def main_process(name:str, cut, descriptor_bool=True, atomindex_bool=True, y_boo
         n_frames = len(x_descriptor) // N_ATOMS
         x_atomindex = np.array([[i]*n_frames for i in range(N_ATOMS)]).ravel()
         x_atomindex = np.identity(N_ATOMS)[x_atomindex]  # one-hot
+        x_atomindex = x_atomindex.astype(DTYPE)
 
     return x_descriptor, x_atomindex, y
 
