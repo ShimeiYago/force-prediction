@@ -7,12 +7,13 @@ import tensorflow as tf
 import models.DNN as DNN
 
 
-INPUT_TRAIN = "workspace/02-make-dataset/training.npz"
-INPUT_VAL = "workspace/02-make-dataset/validation.npz"
+X_TRAIN = "workspace/02-make-dataset/x_train.npz"
+X_VAL = "workspace/02-make-dataset/x_val.npz"
+Y_TRAIN = "workspace/02-make-dataset/y_train.npz"
+Y_VAL = "workspace/02-make-dataset/y_val.npz"
 
 OUTDIR = "workspace/04-learning"
 EACH_OUDIR_KEY = "try"
-FREQ_SAVE_MODEL = 10
 
 def main():
     parser = argparse.ArgumentParser()
@@ -21,17 +22,23 @@ def main():
     parser.add_argument('--lr', type=float, default=0.001, help='Learning Rate')
     args = parser.parse_args()
 
-    # training data
-    npz = np.load(INPUT_TRAIN)
-    x_train = npz['x']
-    t_train = npz['y']
-    del npz
+    # ## path ## #
+    os.makedirs(OUTDIR, exist_ok=True)
+    outdir = decide_outdir()
+    os.makedirs(outdir, exist_ok=True)
+    history_path = os.path.join(outdir, 'history.csv')
 
-    # validation data
-    npz = np.load(INPUT_VAL)
-    x_val = npz['x']
-    t_val = npz['y']
-    del npz
+    option_path = os.path.join(outdir, 'option.txt')
+    save_options(args, option_path)
+
+    weights_dir = os.path.join(outdir, 'weights')
+    os.makedirs(weights_dir, exist_ok=True)
+
+    # training data
+    x_train = np.load(X_TRAIN)['x']
+    t_train = np.load(Y_TRAIN)['y']
+    x_val = np.load(X_VAL)['x']
+    t_val = np.load(Y_VAL)['y']
 
     input_dim = x_train.shape[1]
 
@@ -44,6 +51,25 @@ def main():
                      batch_size=args.batch,
                      verbose=2,
                      validation_data=(x_val, t_val))
+    
+    loss_history = np.array([hist.history['loss'], hist.history['val_loss']]).transpose(1,0)
+    np.savetxt(history_path, loss_history, delimiter=",", header="train loss,val_loss")
+
+    model.save_weights(os.path.join(weights_dir, 'weights'))
+
+
+def decide_outdir():
+    for i in range(100):
+        if f'{EACH_OUDIR_KEY}{i:0=3}' in os.listdir(OUTDIR):
+            continue
+        return os.path.join(OUTDIR, f'{EACH_OUDIR_KEY}{i:0=3}')
+
+
+def save_options(args, fp):
+    with open(fp, mode='w') as f:
+        f.write(f'Number of epochs:\t{args.epochs}'
+                f'\nlr:\t{args.lr}'
+                f'\nbatch:\t{args.batch}')
 
 
 if __name__ == '__main__':
