@@ -44,8 +44,6 @@ def main():
     train_x_descriptor, train_x_atomindex, _ = main_process('training', cut=[args.train_lower, args.train_upper], y_bool=False)
     # zero padding
     train_x_descriptor = zero_padding_array(train_x_descriptor, maxlen=maxlen, dtype=DTYPE)
-    # reshape
-    train_x_descriptor = train_x_descriptor.reshape(N_ATOMS, -1, train_x_descriptor.shape[1], train_x_descriptor.shape[2]).transpose(1,0,2,3).reshape(-1, train_x_descriptor.shape[1], train_x_descriptor.shape[2])
     # normalize x
     train_x_descriptor = train_x_descriptor / np.array([max_reciprocal_radius, 1, 1, 1])
     train_x_descriptor = train_x_descriptor.astype(DTYPE)
@@ -62,8 +60,6 @@ def main():
     val_x_descriptor, val_x_atomindex, _ = main_process('validation', cut=[args.val_lower, args.val_upper], y_bool=False)
     # zero padding
     val_x_descriptor = zero_padding_array(val_x_descriptor, maxlen=maxlen, dtype=DTYPE)
-    # reshape
-    val_x_descriptor = val_x_descriptor.reshape(N_ATOMS, -1, val_x_descriptor.shape[1], val_x_descriptor.shape[2]).transpose(1,0,2,3).reshape(-1, val_x_descriptor.shape[1], val_x_descriptor.shape[2])
     # normalize x
     val_x_descriptor = val_x_descriptor / np.array([max_reciprocal_radius, 1, 1, 1])
     val_x_descriptor = val_x_descriptor.astype(DTYPE)
