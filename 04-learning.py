@@ -4,6 +4,7 @@ import numpy as np
 import os
 import argparse
 import models.DNN as DNN
+from tensorflow.keras.callbacks import LearningRateScheduler
 
 
 X_TRAIN = "workspace/02-make-dataset/x_train.npz"
@@ -15,6 +16,7 @@ OUTDIR = "workspace/04-learning"
 EACH_OUDIR_KEY = "try"
 
 N_ATOMS = 309
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -66,13 +68,27 @@ def main():
         model = DNN.model2(input_dim=input_dim, learning_rate=args.lr)
     elif args.model == 3:
         model = DNN.model3(input_dim=input_dim, learning_rate=args.lr)
+    elif args.model == 4:
+        model = DNN.model4(input_dim=input_dim, learning_rate=args.lr)
+
+    # learning rate
+    def step_decay(epoch):
+        x = args.lr
+        if epoch >= args.epochs // 2:
+            x = x / 10
+        if epoch >= (args.epochs // 4 * 3):
+            x = x / 10
+        return x
+
+    lr_decay = LearningRateScheduler(step_decay)
 
     # learning
     hist = model.fit(x_train, t_train,
                      epochs=args.epochs,
                      batch_size=args.batch,
                      verbose=2,
-                     validation_data=(x_val, t_val))
+                     validation_data=(x_val, t_val),
+                     callbacks=[lr_decay])
     
     loss_history = np.array([hist.history['loss'], hist.history['val_loss']]).transpose(1,0)
     np.savetxt(history_path, loss_history, delimiter=",", header="train loss,val_loss")

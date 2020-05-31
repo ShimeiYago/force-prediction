@@ -12,6 +12,7 @@ CUTOFF_RADIUS = 1.0
 N_ATOMS = 309
 DTYPE = 'float32'
 
+
 def main():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--train_lower', type=int, default=None, help='')
