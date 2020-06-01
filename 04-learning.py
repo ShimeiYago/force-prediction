@@ -70,6 +70,9 @@ def main():
         model = DNN.model3(input_dim=input_dim, learning_rate=args.lr)
     elif args.model == 4:
         model = DNN.model4(input_dim=input_dim, learning_rate=args.lr)
+    elif args.model == 5:
+        model = DNN.model5(input_dim=input_dim, learning_rate=args.lr)
+
 
     # learning rate
     def step_decay(epoch):

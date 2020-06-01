@@ -56,7 +56,7 @@ def main_process(start_index, coords, forces, outdir, max_wokers):
 
         # x (coords)
         x = [d for d,_ in results]
-        x = zero_padding_array(x)
+        x = zero_padding_array(x, dtype=DTYPE)
 
         # y (forces)
         y = np.array([f for _,f in results], dtype=DTYPE)
