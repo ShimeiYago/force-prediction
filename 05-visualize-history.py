@@ -20,6 +20,7 @@ def main():
 
     # plot
     for keyname, history in zip(keyname_list, history_list):
+        history = np.array(history).transpose(1,0)
         loss = history[0]
         val_loss = history[1]
 

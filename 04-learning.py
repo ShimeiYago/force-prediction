@@ -83,7 +83,7 @@ def main():
             x = x / 10
         return x
 
-    lr_decay = LearningRateScheduler(step_decay)
+    lr_decay = LearningRateScheduler(step_decay, verbose=1)
 
     # learning
     hist = model.fit(x_train, t_train,

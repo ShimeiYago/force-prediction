@@ -25,29 +25,33 @@ def main():
 
     # ## load x descriptor ## #
     # train
-    train_x_descriptor, _, _ = main_process('training', cut=[args.train_lower, args.train_upper], atomindex_bool=False, y_bool=False)
+    train_x_descriptor, train_x_atomindex, _ = main_process('training', cut=[args.train_lower, args.train_upper], y_bool=False)
 
     train_n_data = len(train_x_descriptor)
     maxlen = max([len(li) for li in train_x_descriptor])
     max_reciprocal_radius = max([max(x[:,0]) for x in train_x_descriptor])
-    del train_x_descriptor
 
     # val
-    val_x_descriptor, _, _ = main_process('validation', cut=[args.val_lower, args.val_upper], atomindex_bool=False, y_bool=False)
+    val_x_descriptor, val_x_atomindex, _ = main_process('validation', cut=[args.val_lower, args.val_upper], y_bool=False)
 
     val_n_data = len(val_x_descriptor)
     maxlen = max([maxlen] + [len(li) for li in val_x_descriptor])
     max_reciprocal_radius = max([max_reciprocal_radius] + [max(x[:,0]) for x in val_x_descriptor])
-    del val_x_descriptor
 
+    # zero padding
+    train_x_descriptor = zero_padding_array(train_x_descriptor, maxlen=maxlen, dtype=DTYPE).reshape(-1, 4)
+    val_x_descriptor = zero_padding_array(val_x_descriptor, maxlen=maxlen, dtype=DTYPE).reshape(-1, 4)
+
+    # normalize
+    x_mean = np.mean(np.concatenate([train_x_descriptor, val_x_descriptor], axis=0), axis=0)
+    x_std = np.std(np.concatenate([train_x_descriptor, val_x_descriptor], axis=0), axis=0)
+    train_x_descriptor = (train_x_descriptor - x_mean) / x_std
+    val_x_descriptor = (val_x_descriptor - x_mean) / x_std
+    
+    train_x_descriptor = train_x_descriptor.astype(DTYPE)
+    val_x_descriptor = val_x_descriptor.astype(DTYPE)
 
     # ## save x_train ## #
-    train_x_descriptor, train_x_atomindex, _ = main_process('training', cut=[args.train_lower, args.train_upper], y_bool=False)
-    # zero padding
-    train_x_descriptor = zero_padding_array(train_x_descriptor, maxlen=maxlen, dtype=DTYPE)
-    # normalize x
-    train_x_descriptor = train_x_descriptor / np.array([max_reciprocal_radius, 1, 1, 1])
-    train_x_descriptor = train_x_descriptor.astype(DTYPE)
     # join x
     train_x_descriptor = train_x_descriptor.reshape(train_n_data, -1)
     train_x_descriptor = np.concatenate([train_x_descriptor, train_x_atomindex], axis=1)
@@ -58,12 +62,6 @@ def main():
 
 
     # ## save x_val ## #
-    val_x_descriptor, val_x_atomindex, _ = main_process('validation', cut=[args.val_lower, args.val_upper], y_bool=False)
-    # zero padding
-    val_x_descriptor = zero_padding_array(val_x_descriptor, maxlen=maxlen, dtype=DTYPE)
-    # normalize x
-    val_x_descriptor = val_x_descriptor / np.array([max_reciprocal_radius, 1, 1, 1])
-    val_x_descriptor = val_x_descriptor.astype(DTYPE)
     # join x
     val_x_descriptor = val_x_descriptor.reshape(val_n_data, -1)
     val_x_descriptor = np.concatenate([val_x_descriptor, val_x_atomindex], axis=1)
