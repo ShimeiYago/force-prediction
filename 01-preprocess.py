@@ -13,7 +13,7 @@ from utils import zero_padding_array
 
 OUTDIR = 'workspace/01-preprocess'
 CUTOFF_RADIUS = 1.0
-DTYPE = 'float64'
+DTYPE = 'float32'
 
 
 def main():
