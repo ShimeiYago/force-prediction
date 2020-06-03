@@ -56,8 +56,13 @@ def main():
 
         train_len = int(x_train.shape[0] * 0.8)
 
-        x_train, x_val = np.split(x_train, [train_len]).reshape(-1, input_dim)
-        t_train, t_val = np.split(t_train, [train_len]).reshape(-1, 3)
+        x_train, x_val = np.split(x_train, [train_len])
+        x_train = x_train.reshape(-1, input_dim)
+        x_val = x_val.reshape(-1, input_dim)
+
+        t_train, t_val = np.split(t_train, [train_len])
+        t_train = t_train.reshape(-1, 3)
+        t_val = t_val.reshape(-1, 3)
 
     # model
     if args.model == 1:
