@@ -65,11 +65,10 @@ def main():
 
     # ## make descriptor ## #
     os.makedirs(OUTDIR, exist_ok=True)
-    OUTPATH = os.path.join(OUTDIR, args.o)
 
     discriptor_generator = DiscriptorGenerator(
         (train_coords, train_forces, val_coords, val_forces),
-        N_ATOMS, CUTOFF_RADIUS, OUTPATH, args.batch, ab_indeces,
+        N_ATOMS, CUTOFF_RADIUS, args.o, args.batch, ab_indeces,
         Index2ID, args.no_atom_index, args.no_relative_distance)
 
     discriptor_generator()

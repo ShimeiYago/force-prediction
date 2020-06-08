@@ -70,13 +70,13 @@ class DiscriptorGenerator:
             da.to_hdf5(self.OUTPATH, f'/{TRAIN_NAME}/{RESPONSE_NAME}', train_y)
             da.to_hdf5(self.OUTPATH, f'/{VAL_NAME}/{RESPONSE_NAME}', val_y)
 
-        ## save normalization values ## #
+        # ## save normalization values ## #
         with h5py.File(self.OUTPATH, mode='r+') as f:
             normalization = f.create_dataset(
                 name='/normalization', shape=(3,), dtype=np.float64)
             normalization[...] = np.array(
                 [self.max_reciprocal_radius, y_mean, y_std])
-        
+
         # ## output final shape ## #
         with h5py.File(self.OUTPATH, mode='r') as f:
             train_x = f[f'/{TRAIN_NAME}/{EXPLANATORY_NAME}']
