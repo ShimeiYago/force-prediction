@@ -1,5 +1,3 @@
-# import numpy as np
-
 class CycleLearningRate:
     def __init__(self, base_lr:float, max_lr:float, n_data:int, batchsize:int, mul=10):
         self.stepsize = (n_data // batchsize) * mul
