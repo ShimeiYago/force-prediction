@@ -44,6 +44,9 @@ def main():
         train_len = int(train_coords.shape[0] * TRAIN_SIZE)
         val_coords, val_forces = train_coords[train_len:], train_forces[train_len:]
         train_coords, train_forces = train_coords[:train_len], train_forces[:train_len]
+    # print inputted data shape
+    print('--- Read files ---\ntraining data:',
+          train_coords.shape, '\nvalidation data:', val_coords.shape)
     # reshape
     train_forces = train_forces.reshape(-1, 3)
     val_forces = val_forces.reshape(-1, 3)
