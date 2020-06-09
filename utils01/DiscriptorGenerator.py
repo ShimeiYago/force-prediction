@@ -2,6 +2,7 @@ import numpy as np
 import dask.array as da
 import h5py
 import math
+import time
 
 TRAIN_NAME = "training"
 VAL_NAME = "validation"
@@ -117,6 +118,7 @@ class DiscriptorGenerator:
         part_index_list = list(range(0, N_datasets, self.BATCHSIZE)) + [N_datasets]
         N_process = math.ceil(N_datasets / self.BATCHSIZE)
         for i in range(N_process):
+            start_time = time.time()
             l, u = part_index_list[i:i+2]
             part_descriptors = descriptors[l:u].compute()
             part_forces = forces[l:u].compute()
@@ -170,7 +172,8 @@ class DiscriptorGenerator:
                 Y[l:u] = part_forces
 
             # print progress
-            print(i+1, '/', N_process)
+            elapsed_time = time.time() - start_time
+            print(i+1, '/', N_process, ':', f'{elapsed_time:.2f}', 's')
 
 
     def _get_index(self, Ri):  # np.ndarray function
