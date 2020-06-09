@@ -23,59 +23,31 @@ class DiscriptorGenerator:
         self.no_atom_index = no_atom_index
         self.no_relative_distance = no_relative_distance
 
+        self.MAX_RECIPROCAL_DADIUS = 0
+
 
     def __call__(self):
         # ## preprocess ## #
         self.train_descriptors = self._preprocess(self.train_coords)
         self.val_descriptors = self._preprocess(self.val_coords)
 
-        # ## radius ## #
-        self.train_radiuses = da.sqrt(da.sum(da.square(self.train_descriptors), axis=2))
-        self.val_radiuses = da.sqrt(da.sum(da.square(self.val_descriptors), axis=2))
+        # ## decide batchsize ## #
+        self._decide_batchsize(30)
 
-        # ## caluclate MAX_ATOMS from radiuses ## #
-        total_radiuses = da.concatenate([self.train_radiuses, self.val_radiuses], axis=0)
-        MAX_ATOMS = da.max(da.count_nonzero(total_radiuses <= self.CUTOFF_RADIUS, axis=1))
-        self.MAX_ATOMS = MAX_ATOMS.compute()
-
-        # ## max_reciprocal_radius ## #
-        self.max_reciprocal_radius = 1 / da.min(total_radiuses[total_radiuses != 0]).compute()
+        # ## caluclate MAX_ATOMS ## #
+        self.MAX_ATOMS, self.MAX_RECIPROCAL_DADIUS = self._cal_max_params()
+        print(f'MAX_ATOMS: {self.MAX_ATOMS}')
 
         # ## main process ## #
         with h5py.File(self.OUTPATH, mode='w') as f:  # create file
             pass
 
         self._decide_inputdim()
-        self._decide_batchsize(30)
-        self._mainprocess(self.train_descriptors, self.train_forces,
-                          self.train_radiuses, TRAIN_NAME)
-        self._mainprocess(self.val_descriptors, self.val_forces,
-                          self.val_radiuses, VAL_NAME)
+        self._mainprocess(self.train_descriptors, self.train_forces, TRAIN_NAME)
+        self._mainprocess(self.val_descriptors, self.val_forces, VAL_NAME)
 
-        # ## normalize y ## #
-        with h5py.File(self.OUTPATH, mode='r+') as f:
-            # load
-            train_y = da.from_array(f[f'/{TRAIN_NAME}/{RESPONSE_NAME}'], chunks=("auto", 3))
-            val_y = da.from_array(f[f'/{VAL_NAME}/{RESPONSE_NAME}'], chunks=("auto", 3))
-
-            total_y = da.concatenate([train_y, val_y], axis=0)
-            y_mean = da.mean(total_y.reshape(-1), axis=0).compute()
-            y_std = da.std(total_y.reshape(-1), axis=0).compute()
-
-            # normalize
-            train_y = da.divide(da.subtract(train_y, y_mean), y_std)
-            val_y = da.divide(da.subtract(val_y, y_mean), y_std)
-
-            # save
-            da.to_hdf5(self.OUTPATH, f'/{TRAIN_NAME}/{RESPONSE_NAME}', train_y)
-            da.to_hdf5(self.OUTPATH, f'/{VAL_NAME}/{RESPONSE_NAME}', val_y)
-
-        # ## save normalization values ## #
-        with h5py.File(self.OUTPATH, mode='r+') as f:
-            normalization = f.create_dataset(
-                name='/normalization', shape=(3,), dtype=np.float64)
-            normalization[...] = np.array(
-                [self.max_reciprocal_radius, y_mean, y_std])
+        # ## normalize ## #
+        self._normalize()
 
         # ## output final shape ## #
         with h5py.File(self.OUTPATH, mode='r') as f:
@@ -122,8 +94,14 @@ class DiscriptorGenerator:
         if not self.BATCHSIZE:
             self.BATCHSIZE = N_train_datasets // n_unit
 
+    def _cal_max_params(self):
+        radiuses = np.linalg.norm(self.train_descriptors[:self.BATCHSIZE*3].compute(), axis=2, ord=2)
+        max_atoms = np.max(np.count_nonzero(radiuses <= self.CUTOFF_RADIUS, axis=1)) - 1
+        max_reciprocal_radius = 1 / np.min(radiuses[radiuses != 0])
+        return max_atoms, max_reciprocal_radius
 
-    def _mainprocess(self, descriptors, forces, radiuses, groupname):
+
+    def _mainprocess(self, descriptors, forces, groupname):
         print(f'--- Process of {groupname} data ---')
         N_datasets = descriptors.shape[0]
 
@@ -152,9 +130,12 @@ class DiscriptorGenerator:
             part_forces = np.array([np.dot(part_forces[i], rot_matrices[i]) for i in range(part_forces.shape[0])])
 
             # add radius
-            part_radiuses = radiuses[l:u].compute()
+            part_radiuses = np.linalg.norm(part_descriptors, axis=2, ord=2)
             part_descriptors = np.concatenate(
-                [part_descriptors, part_radiuses.reshape(part_radiuses.shape[0], part_radiuses.shape[1], 1)], axis=2)
+                [part_descriptors,
+                 part_radiuses.reshape(part_radiuses.shape[0], part_radiuses.shape[1], 1)],
+                 axis=2)
+            del part_radiuses
 
             # descriptor
             part_descriptors = np.array(
@@ -162,10 +143,9 @@ class DiscriptorGenerator:
 
             # normalize x
             if not self.no_relative_distance:
-                x_normalization_values = np.array([self.max_reciprocal_radius, 1, 1, 1, self.N_ATOMS])
+                x_normalization_values = np.array([self.MAX_RECIPROCAL_DADIUS, 1, 1, 1, self.N_ATOMS])
             else:
-                x_normalization_values = np.array([self.max_reciprocal_radius, 1, 1, 1])
-
+                x_normalization_values = np.array([self.MAX_RECIPROCAL_DADIUS, 1, 1, 1])
             part_descriptors = np.divide(part_descriptors, x_normalization_values)
 
             # flatten
@@ -180,6 +160,7 @@ class DiscriptorGenerator:
             if self.Index2ID:
                 residue_ids = np.array([self.Index2ID[idx] for idx in indeces])
                 part_descriptors = np.concatenate([part_descriptors, np.identity(self.N_RESIDUE)[residue_ids]], axis=1)
+                del residue_ids
 
             # save to hdf5
             with h5py.File(self.OUTPATH, mode='r+') as f:
@@ -244,3 +225,35 @@ class DiscriptorGenerator:
             return np.array([
                 [1/r, x/r, y/r, z/r] if r <= self.CUTOFF_RADIUS else [0, 0, 0, 0]
                 for x, y, z, r, rrd in D])
+
+
+    def _normalize(self):
+        # ## normalize y ## #
+        with h5py.File(self.OUTPATH, mode='r+') as f:
+            # load
+            train_y = da.from_array(f[f'/{TRAIN_NAME}/{RESPONSE_NAME}'], chunks=("auto", 3))
+            val_y = da.from_array(f[f'/{VAL_NAME}/{RESPONSE_NAME}'], chunks=("auto", 3))
+
+            total_y = da.concatenate([train_y, val_y], axis=0)
+            y_mean = da.mean(total_y.reshape(-1), axis=0).compute()
+            y_std = da.std(total_y.reshape(-1), axis=0).compute()
+
+            # normalize
+            train_y = da.divide(da.subtract(train_y, y_mean), y_std)
+            val_y = da.divide(da.subtract(val_y, y_mean), y_std)
+
+            # save
+            da.to_hdf5(self.OUTPATH, f'/{TRAIN_NAME}/{RESPONSE_NAME}', train_y)
+            da.to_hdf5(self.OUTPATH, f'/{VAL_NAME}/{RESPONSE_NAME}', val_y)
+
+        # ## save normalization values ## #
+        with h5py.File(self.OUTPATH, mode='r+') as f:
+            normalization = f.create_dataset(
+                name='/normalization', shape=(3,), dtype=np.float64)
+            normalization[...] = np.array(
+                [self.MAX_RECIPROCAL_DADIUS, y_mean, y_std])
+
+        print(
+            '--- Normalization values ---\n' +
+            f'MAX_RECIPROCAL_DADIUS: {self.MAX_RECIPROCAL_DADIUS:.3f}\n' +
+            f'y_mean: {y_mean:.3f}\ny_std: {y_std:.3f}')

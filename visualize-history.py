@@ -11,17 +11,8 @@ INPUTDIR03 = "workspace/03-learning"
 
 def main():
     # load 02 data
-    historydict02 = {}
-    for filepath in glob.glob(INPUTDIR02 + '/*.csv'):
-        filename = os.path.splitext(os.path.basename(filepath))[0] + '.png'
-        outpath = os.path.join(os.path.dirname(filepath), filename)
-        historydict02[outpath] = np.loadtxt(filepath, delimiter=',', skiprows=1)
-
-    # load 03 data
-    historydict03 = {}
-    for filepath in glob.glob(INPUTDIR03 + '/*/history.csv'):
-        outpath = os.path.join(os.path.dirname(filepath), 'history.png')
-        historydict03[outpath] = np.loadtxt(filepath, delimiter=',', skiprows=1)
+    historydict02 = load_history_csv(glob.glob(INPUTDIR02 + '/*.csv'))
+    historydict03 = load_history_csv(glob.glob(INPUTDIR03 + '/*/history.csv'))
 
     # plot 02
     for outpath, history in historydict02.items():
@@ -56,6 +47,19 @@ def main():
         plt.legend(bbox_to_anchor=(1, 1), loc='upper right', borderaxespad=0)
         plt.savefig(outpath)
 
+
+def load_history_csv(filepath_list):
+    historydict = {}
+    for filepath in filepath_list:
+        filename = os.path.splitext(os.path.basename(filepath))[0] + '.png'
+        outpath = os.path.join(os.path.dirname(filepath), filename)
+
+        try:
+            historydict[outpath] = np.loadtxt(filepath, delimiter=',', skiprows=1)
+        except:
+            print(f'"{filepath}" are skipped. cannot load the file.')
+        
+    return historydict
 
 if __name__ == '__main__':
     main()
