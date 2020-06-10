@@ -30,7 +30,7 @@ def main():
     parser.add_argument('-i', '--input', type=str,
                         default=os.path.join(INPUTDIR, 'datasets.hdf5'),
                         help='input datasets')
-    parser.add_argument('-b', '--batch', type=int, default=100, help='batch size')
+    parser.add_argument('-b', '--batch', type=int, help='batch size')
     parser.add_argument('--model', type=int, default=1, help='model number')
     args = parser.parse_args()
 

@@ -26,7 +26,7 @@ class DNN:
         model.add(Dense(50, activation='tanh'))
         model.add(Dense(30, activation='tanh'))
         model.add(Dense(10, activation='tanh'))
-        model.add(Dense(3, activation='linear'))      
+        model.add(Dense(3, activation='linear'))
 
         optimizer = optimizers.Adam(learning_rate=self.learning_rate, beta_1=0.9, beta_2=0.999, amsgrad=True)
         model.compile(optimizer=optimizer, loss='mean_squared_error')
@@ -41,7 +41,7 @@ class DNN:
         model.add(Dense(50, activation='tanh'))
         model.add(Dense(30, activation='tanh'))
         model.add(Dense(10, activation='tanh'))
-        model.add(Dense(3, activation='linear'))      
+        model.add(Dense(3, activation='linear'))
 
         optimizer = optimizers.Adam(learning_rate=self.learning_rate, beta_1=0.9, beta_2=0.999, amsgrad=True)
         model.compile(optimizer=optimizer, loss='mean_squared_error')
@@ -59,7 +59,7 @@ class DNN:
         model.add(Dense(50, activation='tanh'))
         model.add(Dense(30, activation='tanh'))
         model.add(Dense(10, activation='tanh'))
-        model.add(Dense(3, activation='linear'))      
+        model.add(Dense(3, activation='linear'))
 
         optimizer = optimizers.Adam(learning_rate=self.learning_rate, beta_1=0.9, beta_2=0.999, amsgrad=True)
         model.compile(optimizer=optimizer, loss='mean_squared_error')
@@ -72,7 +72,7 @@ class DNN:
         model.add(Dense(100, activation='tanh'))
         model.add(Dense(50, activation='tanh'))
         model.add(Dense(10, activation='tanh'))
-        model.add(Dense(3, activation='linear'))      
+        model.add(Dense(3, activation='linear'))
 
         optimizer = optimizers.Adam(learning_rate=self.learning_rate, beta_1=0.9, beta_2=0.999, amsgrad=True)
         model.compile(optimizer=optimizer, loss='mean_squared_error')

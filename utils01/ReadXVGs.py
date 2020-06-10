@@ -4,14 +4,15 @@ import sys
 
 
 class ReadXVGs:
-    def __init__(self, init_time: int):
+    def __init__(self, init_time: int, maxlen: int):
         self.init_time = init_time
+        self.maxlen = maxlen
 
     def __call__(self, fplist: list):
         coords_list, forces_list = [], []
         for fp_coord, fp_force in fplist:
-            coord = self._read_xvg(fp_coord)[self.init_time:]
-            force = self._read_xvg(fp_force)[self.init_time:]
+            coord = self._read_xvg(fp_coord)[self.init_time:][:self.maxlen]
+            force = self._read_xvg(fp_force)[self.init_time:][:self.maxlen]
 
             # check shape
             self._check_shape(coord.shape, force.shape, fp_coord, fp_force)

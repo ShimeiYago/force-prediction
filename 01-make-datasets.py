@@ -20,6 +20,7 @@ def main():
     parser.add_argument('-i', '--inputs', action='append', nargs=2, metavar=('coord','force'), required=True, help='two xvg files')
     parser.add_argument('-v', '--inputs_val', action='append', nargs=2, metavar=('coord','force'), 
                         help='if you prepare validation data aside from inputted files, specify the two files')
+    parser.add_argument('--maxlen', type=int, help='max length of trajectory to use')
     parser.add_argument('-o',
                         default=os.path.join(OUTDIR, 'datasets.hdf5'), type=str,
                         help='output file name (.hdf5 is recommended)')
@@ -34,7 +35,7 @@ def main():
     args = parser.parse_args()
 
     # ## read data ## #
-    readxvgs = ReadXVGs(args.init_time)
+    readxvgs = ReadXVGs(args.init_time, args.maxlen)
     # train data
     train_coords, train_forces = readxvgs(args.inputs)
     # val data
