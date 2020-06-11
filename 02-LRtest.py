@@ -22,7 +22,6 @@ INPUTDIR = "workspace/01-make-datasets"
 OUTDIR = "workspace/02-lrtest"
 
 TRAIN_NAME = "training"
-VAL_NAME = "validation"
 EXPLANATORY_NAME = "x"
 RESPONSE_NAME = "y"
 
