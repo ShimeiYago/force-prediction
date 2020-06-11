@@ -3,6 +3,8 @@
 import os
 import argparse
 import h5py
+import numpy as np
+import glob
 
 from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras.callbacks import CSVLogger
@@ -35,19 +37,13 @@ def main():
     args = parser.parse_args()
 
     # ## path ## #
-    os.makedirs(OUTDIR, exist_ok=True)
     keyword = os.path.splitext(os.path.basename(args.input))[0] + f'-model{args.model:02d}'
-    history_path = os.path.join(OUTDIR, f'{keyword}.csv')
+    outdir = os.path.join(OUTDIR, keyword)
+    os.makedirs(outdir, exist_ok=True)
+    history_path = os.path.join(outdir, f'{keyword}.csv')
 
-    # ## callback ## #
-    # CSVLogger
-    csv_logger = CSVLogger(history_path)
-    # learningRateScheduler
-    lr_test = LRtest(LRLIST)
-    lr_scheduler = LearningRateScheduler(lr_test, verbose=1)
-
-
-    # ## LRtest ## #
+    # ## load dataset ## #
+    print("--- loading datasets ---")
     with h5py.File(args.input, mode='r') as f:
         # prepare data
         X_train = f[f'/{TRAIN_NAME}/{EXPLANATORY_NAME}']
@@ -56,23 +52,56 @@ def main():
         N_datasets = X_train.shape[0]
         INPUT_DIM = X_train.shape[1]
 
-        # model
-        dnn = DNN(INPUT_DIM)
-        model = dnn(args.model)
-
         # decide batchsize
-        if not args.batch:
-            args.batch = N_datasets // 50
+        if args.batch:
+            batchsize = args.batch
+        else:
+            batchsize = N_datasets // 50
 
-        # datasets generator
-        train_generator = MySequence(N_datasets, args.batch, X_train, Y_train)
+        X_train_mmap = np.memmap(
+            os.path.join(outdir, 'x_train.mmap'),
+            dtype='float32', mode='w+', shape=X_train.shape)
+        Y_train_mmap = np.memmap(
+            os.path.join(outdir, 'y_train.mmap'),
+            dtype='float32', mode='w+', shape=Y_train.shape)
 
-        # learning
+        # load each batch
+        for i in range(0, N_datasets, batchsize):
+            X_train_mmap[i:i+batchsize] = X_train[i:i+batchsize]
+            Y_train_mmap[i:i+batchsize] = Y_train[i:i+batchsize]
+    print("--- datasets have been loaded ---\n")
+
+    # ## callback ## #
+    # CSVLogger
+    csv_logger = CSVLogger(history_path)
+    # learningRateScheduler
+    lr_test = LRtest(LRLIST)
+    lr_scheduler = LearningRateScheduler(lr_test, verbose=1)
+
+    # ## model ## #
+    dnn = DNN(INPUT_DIM)
+    model = dnn(args.model)
+
+    # ## datasets generator ## #
+    train_generator = MySequence(N_datasets, batchsize, X_train_mmap, Y_train_mmap)
+
+    # ## learning ## #
+    try:
         model.fit_generator(
             generator=train_generator,
             epochs=len(LRLIST),
             callbacks=[lr_scheduler, csv_logger],
-            verbose=2)
+            verbose=2, shuffle=False)
+
+    except KeyboardInterrupt:
+        pass
+    finally:
+        remove_mmap(outdir)
+
+
+def remove_mmap(outdir):
+    for fp in glob.glob(f"{outdir}/*.mmap"):
+        os.remove(fp)
 
 
 if __name__ == '__main__':
