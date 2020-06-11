@@ -66,22 +66,23 @@ def main():
         X_val = f[f'/{VAL_NAME}/{EXPLANATORY_NAME}']
         Y_val = f[f'/{VAL_NAME}/{RESPONSE_NAME}']
 
-        N_datasets = X_train.shape[0]
+        N_datasets_train = X_train.shape[0]
+        N_datasets_val = X_val.shape[0]
         INPUT_DIM = X_train.shape[1]
 
         # decide batchsize
         if args.batch:
             batchsize = args.batch
         else:
-            batchsize = N_datasets // 50
+            batchsize = N_datasets_train // 50
 
         # model
         dnn = DNN(INPUT_DIM, args.lr)
         model = dnn(args.model)
 
         # datasets generator
-        train_generator = MySequence(N_datasets, batchsize, X_train, Y_train)
-        val_generator = MySequence(N_datasets, batchsize, X_val, Y_val)
+        train_generator = MySequence(N_datasets_train, batchsize, X_train, Y_train)
+        val_generator = MySequence(N_datasets_val, batchsize, X_val, Y_val)
 
         # learningRateScheduler
         lr_step_decay = LearningRate_StepDecay(args.epochs, args.lr)
