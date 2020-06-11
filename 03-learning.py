@@ -107,7 +107,7 @@ def main():
 
     # ## datasets generator ## #
     train_generator = MySequence(N_datasets_train, batchsize, X_train_mmap, Y_train_mmap)
-    # val_generator = MySequence(N_datasets_val, batchsize, X_val_mmap, Y_val_mmap, shuffle=False)
+    val_generator = MySequence(N_datasets_val, batchsize, X_val_mmap, Y_val_mmap, shuffle=False)
 
     # ## learningRateScheduler ## #
     lr_step_decay = LearningRate_StepDecay(args.epochs, args.lr)
@@ -117,7 +117,7 @@ def main():
     try:
         model.fit_generator(
             generator=train_generator,
-            validation_data=(X_val_mmap, Y_val_mmap),
+            validation_data=val_generator,
             epochs=args.epochs,
             callbacks=[lr_scheduler, checkpoint, csv_logger],
             verbose=2, shuffle=False)
