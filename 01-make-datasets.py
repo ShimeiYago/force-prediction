@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import sys
 import numpy as np
 
 from utils01 import ReadXVGs
@@ -20,11 +21,13 @@ def main():
     parser.add_argument('-i', '--inputs', action='append', nargs=2, metavar=('coord','force'), required=True, help='two xvg files')
     parser.add_argument('-v', '--inputs_val', action='append', nargs=2, metavar=('coord','force'), 
                         help='if you prepare validation data aside from inputted files, specify the two files')
-    parser.add_argument('--maxlen', type=int, help='max length of trajectory to use')
-    parser.add_argument('-o',
-                        default=os.path.join(OUTDIR, 'datasets.hdf5'), type=str,
-                        help='output file name (.hdf5 is recommended)')
     parser.add_argument('--init_time', default=0, type=int, help='initial time to use')
+    parser.add_argument('--maxlen', type=int, help='max length of trajectory to use')
+
+    parser.add_argument('-o', default=os.path.join(OUTDIR, 'datasets.hdf5'),
+                        type=str, help='output file name (.hdf5 is recommended)')
+    parser.add_argument('-f', action="store_true",
+                        help="force to process whether the output file exist")
 
     parser.add_argument('--gro', type=str, help='specify .gro path if want to include amino infomation into datasets')
     parser.add_argument('--no_atom_index', action="store_true", help='do not include atom index infomation into datasets')
@@ -33,6 +36,10 @@ def main():
     parser.add_argument('-b', '--batch', type=int,
                         help='batchsize for one process (recommend: the Number of Frames*Atoms, divided by any natural number)')
     args = parser.parse_args()
+
+    # ## check output file existing ## #
+    if not args.f:
+        check_output(args.o)
 
     # ## read data ## #
     readxvgs = ReadXVGs(args.init_time, args.maxlen)
@@ -74,6 +81,11 @@ def main():
 
     discriptor_generator()
 
+
+def check_output(outpath):
+    if os.path.isfile(outpath):
+        print(f'Error: "{outpath}" already existing! If you force to do, use the -f option.')
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
