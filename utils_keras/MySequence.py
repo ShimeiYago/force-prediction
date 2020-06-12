@@ -21,8 +21,10 @@ class MySequence(Sequence):
     def __getitem__(self, idx):
         start_idx = idx * self.batch_size
         last_idx = start_idx + self.batch_size
-        x = self.X[self.order[start_idx:last_idx]]
-        y = self.Y[self.order[start_idx:last_idx]]
+        order = np.sort(self.order[start_idx:last_idx])
+
+        x = self.X[order]
+        y = self.Y[order]
 
         return x, y
 

@@ -3,8 +3,6 @@
 import os
 import argparse
 import h5py
-import numpy as np
-import glob
 
 from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras.callbacks import CSVLogger
@@ -41,34 +39,18 @@ def main():
     os.makedirs(outdir, exist_ok=True)
     history_path = os.path.join(outdir, f'{keyword}.csv')
 
-    # ## load dataset ## #
-    print("--- loading datasets ---")
-    with h5py.File(args.input, mode='r') as f:
-        # prepare data
-        X_train = f[f'/{TRAIN_NAME}/{EXPLANATORY_NAME}']
-        Y_train = f[f'/{TRAIN_NAME}/{RESPONSE_NAME}']
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input', type=str,
+                        default=os.path.join(INPUTDIR, 'datasets.hdf5'),
+                        help='input datasets')
+    parser.add_argument('-b', '--batch', type=int, help='batch size')
+    parser.add_argument('--model', type=int, default=1, help='model number')
+    args = parser.parse_args()
 
-        N_datasets = X_train.shape[0]
-        INPUT_DIM = X_train.shape[1]
-
-        # decide batchsize
-        if args.batch:
-            batchsize = args.batch
-        else:
-            batchsize = N_datasets // 50
-
-        X_train_mmap = np.memmap(
-            os.path.join(outdir, 'x_train.mmap'),
-            dtype='float32', mode='w+', shape=X_train.shape)
-        Y_train_mmap = np.memmap(
-            os.path.join(outdir, 'y_train.mmap'),
-            dtype='float32', mode='w+', shape=Y_train.shape)
-
-        # load each batch
-        for i in range(0, N_datasets, batchsize):
-            X_train_mmap[i:i+batchsize] = X_train[i:i+batchsize]
-            Y_train_mmap[i:i+batchsize] = Y_train[i:i+batchsize]
-    print("--- datasets have been loaded ---\n")
+    # ## path ## #
+    os.makedirs(OUTDIR, exist_ok=True)
+    keyword = os.path.splitext(os.path.basename(args.input))[0] + f'-model{args.model:02d}'
+    history_path = os.path.join(OUTDIR, f'{keyword}.csv')
 
     # ## callback ## #
     # CSVLogger
@@ -77,25 +59,33 @@ def main():
     lr_test = LRtest(LRLIST)
     lr_scheduler = LearningRateScheduler(lr_test, verbose=1)
 
-    # ## model ## #
-    dnn = DNN(INPUT_DIM)
-    model = dnn(args.model)
 
-    # ## datasets generator ## #
-    train_generator = MySequence(N_datasets, batchsize, X_train_mmap, Y_train_mmap)
+    # ## LRtest ## #
+    with h5py.File(args.input, mode='r') as f:
+        # prepare data
+        X_train = f[f'/{TRAIN_NAME}/{EXPLANATORY_NAME}']
+        Y_train = f[f'/{TRAIN_NAME}/{RESPONSE_NAME}']
 
-    # ## learning ## #
-    try:
+        N_datasets = X_train.shape[0]
+        INPUT_DIM = X_train.shape[1]
+
+        # model
+        dnn = DNN(INPUT_DIM)
+        model = dnn(args.model)
+
+        # decide batchsize
+        if not args.batch:
+            args.batch = N_datasets // 50
+
+        # datasets generator
+        train_generator = MySequence(N_datasets, args.batch, X_train, Y_train)
+
+        # learning
         model.fit_generator(
             generator=train_generator,
             epochs=len(LRLIST),
             callbacks=[lr_scheduler, csv_logger],
-            verbose=2, shuffle=False)
-
-    except KeyboardInterrupt:
-        pass
-    finally:
-        remove_mmap(outdir)
+            verbose=2)
 
 
 def remove_mmap(outdir):

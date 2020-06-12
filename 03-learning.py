@@ -3,8 +3,6 @@
 import os
 import argparse
 import h5py
-import numpy as np
-import glob
 
 from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras.callbacks import ModelCheckpoint
@@ -51,8 +49,16 @@ def main():
 
     print(f'results will output into {outdir}\n')
 
-    # ## load dataset ## #
-    print("--- loading datasets ---")
+    # ## callback ## #
+    # ModelCheckpoint
+    checkpoint = ModelCheckpoint(
+        filepath=os.path.join(weights_dir, "epoch{epoch:03d}.hdf5"),
+        save_weights_only=True,
+        period=CHECKPOINT_PERIOD)
+    # CSVLogger
+    csv_logger = CSVLogger(history_path)
+
+    # ## learning ## #
     with h5py.File(args.input, mode='r') as f:
         # prepare data
         X_train = f[f'/{TRAIN_NAME}/{EXPLANATORY_NAME}']
@@ -70,62 +76,25 @@ def main():
         else:
             batchsize = N_datasets_train // 50
 
-        X_train_mmap = np.memmap(
-            os.path.join(outdir, 'x_train.mmap'),
-            dtype='float32', mode='w+', shape=X_train.shape)
-        Y_train_mmap = np.memmap(
-            os.path.join(outdir, 'y_train.mmap'),
-            dtype='float32', mode='w+', shape=Y_train.shape)
-        X_val_mmap = np.memmap(
-            os.path.join(outdir, 'x_val.mmap'),
-            dtype='float32', mode='w+', shape=X_val.shape)
-        Y_val_mmap = np.memmap(
-            os.path.join(outdir, 'y_val.mmap'),
-            dtype='float32', mode='w+', shape=Y_val.shape)
+        # model
+        dnn = DNN(INPUT_DIM, args.lr)
+        model = dnn(args.model)
 
-        # load each batch
-        for i in range(0, N_datasets_train, batchsize):
-            X_train_mmap[i:i+batchsize] = X_train[i:i+batchsize]
-            Y_train_mmap[i:i+batchsize] = Y_train[i:i+batchsize]
-        for i in range(0, N_datasets_val, batchsize):
-            X_val_mmap[i:i+batchsize] = X_val[i:i+batchsize]
-            Y_val_mmap[i:i+batchsize] = Y_val[i:i+batchsize]
-    print("--- datasets have been loaded ---\n")
+        # datasets generator
+        train_generator = MySequence(N_datasets_train, batchsize, X_train, Y_train, shuffle=False)
+        val_generator = MySequence(N_datasets_val, batchsize, X_val, Y_val, shuffle=False)
 
-    # ## callback ## #
-    # ModelCheckpoint
-    checkpoint = ModelCheckpoint(
-        filepath=os.path.join(weights_dir, "epoch{epoch:03d}.hdf5"),
-        save_weights_only=True,
-        period=CHECKPOINT_PERIOD)
-    # CSVLogger
-    csv_logger = CSVLogger(history_path)
+        # learningRateScheduler
+        lr_step_decay = LearningRate_StepDecay(args.epochs, args.lr)
+        lr_scheduler = LearningRateScheduler(lr_step_decay)
 
-    # ## model ## #
-    dnn = DNN(INPUT_DIM, args.lr)
-    model = dnn(args.model)
-
-    # ## datasets generator ## #
-    train_generator = MySequence(N_datasets_train, batchsize, X_train_mmap, Y_train_mmap)
-    val_generator = MySequence(N_datasets_val, batchsize, X_val_mmap, Y_val_mmap, shuffle=False)
-
-    # ## learningRateScheduler ## #
-    lr_step_decay = LearningRate_StepDecay(args.epochs, args.lr)
-    lr_scheduler = LearningRateScheduler(lr_step_decay)
-
-    # ## learning ## #
-    try:
+        # learning
         model.fit_generator(
             generator=train_generator,
             validation_data=val_generator,
             epochs=args.epochs,
             callbacks=[lr_scheduler, checkpoint, csv_logger],
-            verbose=2, shuffle=False)
-
-    except KeyboardInterrupt:
-        pass
-    finally:
-        remove_mmap(outdir)
+            verbose=2)
 
 
 def decide_outdir():
@@ -143,11 +112,6 @@ def save_options(args, fp):
             f'\ninit lr:\t{args.lr}'
             f'\nbatch:\t{args.batch}'
             f'\nmodel number:\t{args.model}')
-
-
-def remove_mmap(outdir):
-    for fp in glob.glob(f"{outdir}/*.mmap"):
-        os.remove(fp)
 
 
 if __name__ == '__main__':
