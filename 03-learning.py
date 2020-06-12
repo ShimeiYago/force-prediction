@@ -33,6 +33,8 @@ def main():
     parser.add_argument('-b', '--batch', type=int, help='batch size')
     parser.add_argument('--lr', type=float, default=0.001, help='Learning Rate')
     parser.add_argument('--model', type=int, default=1, help='model number')
+
+    parser.add_argument('--weight', type=str, help='model weight path if take over')
     args = parser.parse_args()
 
     # ## path ## #
@@ -79,6 +81,14 @@ def main():
         # model
         dnn = DNN(INPUT_DIM, args.lr)
         model = dnn(args.model)
+        if args.weight:
+            model.load_weights(args.weight)
+
+        # init epoch
+        if args.weight:
+            init_epoch = int(os.path.splitext(args.weight)[0][-3:])
+        else:
+            init_epoch = 0
 
         # datasets generator
         train_generator = MySequence(N_datasets_train, batchsize, X_train, Y_train)
@@ -93,6 +103,7 @@ def main():
             generator=train_generator,
             validation_data=val_generator,
             epochs=args.epochs,
+            initial_epoch=init_epoch,
             callbacks=[lr_scheduler, checkpoint, csv_logger],
             shuffle=True,
             verbose=2)
@@ -112,7 +123,8 @@ def save_options(args, fp):
             f'epochs:\t{args.epochs}'
             f'\ninit lr:\t{args.lr}'
             f'\nbatch:\t{args.batch}'
-            f'\nmodel number:\t{args.model}')
+            f'\nmodel number:\t{args.model}'
+            f'\ntake over from "{args.weight}"')
 
 
 if __name__ == '__main__':

@@ -14,8 +14,8 @@ class MySequence(Sequence):
     def __getitem__(self, idx):
         start_idx = idx * self.batch_size
         last_idx = start_idx + self.batch_size
-        X = self.X_train[start_idx:last_idx]
-        Y = self.Y_train[start_idx:last_idx]
+        X = self.X[start_idx:last_idx]
+        Y = self.Y[start_idx:last_idx]
 
         return X, Y
 
