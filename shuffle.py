@@ -4,6 +4,8 @@ import os
 import argparse
 import h5py
 import dask.array as da
+import numpy as np
+import shutil
 
 INPUTDIR = "workspace/01-make-datasets"
 
@@ -19,18 +21,20 @@ def main():
                         help='input datasets')
     args = parser.parse_args()
 
-    with h5py.File(args.input, mode='r+') as f:
-        # prepare data
+    outpath = os.path.splitext(args.input)[0] + '-shuffled.hdf5'
+    shutil.copy(args.input, outpath)
+
+    with h5py.File(outpath, mode='r+') as f:
         X_train = da.from_array(f[f'/{TRAIN_NAME}/{EXPLANATORY_NAME}'])
         Y_train = da.from_array(f[f'/{TRAIN_NAME}/{RESPONSE_NAME}'])
 
-        ramdom_order = da.random.permutation(X_train.shape[0])
+        random_order = np.random.permutation(X_train.shape[0])
 
-        X_train = X_train[ramdom_order]
-        Y_train = Y_train[ramdom_order]
+        X_train = da.slicing.shuffle_slice(X_train, random_order)
+        Y_train = da.slicing.shuffle_slice(Y_train, random_order)
 
-        da.to_hdf5(args.input, f'/{TRAIN_NAME}/{EXPLANATORY_NAME}', X_train)
-        da.to_hdf5(args.input, f'/{TRAIN_NAME}/{RESPONSE_NAME}', Y_train)
+        da.to_hdf5(outpath, f'/{TRAIN_NAME}/{EXPLANATORY_NAME}', X_train)
+        da.to_hdf5(outpath, f'/{TRAIN_NAME}/{RESPONSE_NAME}', Y_train)
 
 
 if __name__ == '__main__':

@@ -87,6 +87,7 @@ def main():
 
     discriptor_generator()
 
+    print('--- Shuffling Training datasets ---')
     shuffle_traindata(args.o)
 
 
@@ -102,10 +103,10 @@ def shuffle_traindata(datapath):
         X_train = da.from_array(f[f'/{TRAIN_NAME}/{EXPLANATORY_NAME}'])
         Y_train = da.from_array(f[f'/{TRAIN_NAME}/{RESPONSE_NAME}'])
 
-        ramdom_order = da.random.permutation(X_train.shape[0])
+        random_order = np.random.permutation(X_train.shape[0])
 
-        X_train = X_train[ramdom_order]
-        Y_train = Y_train[ramdom_order]
+        X_train = da.slicing.shuffle_slice(X_train, random_order)
+        Y_train = da.slicing.shuffle_slice(Y_train, random_order)
 
         da.to_hdf5(datapath, f'/{TRAIN_NAME}/{EXPLANATORY_NAME}', X_train)
         da.to_hdf5(datapath, f'/{TRAIN_NAME}/{RESPONSE_NAME}', Y_train)
