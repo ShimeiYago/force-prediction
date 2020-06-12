@@ -4,6 +4,8 @@ import argparse
 import os
 import sys
 import numpy as np
+import dask.array as da
+import h5py
 
 from utils01 import ReadXVGs
 from utils01 import make_amino_dict
@@ -14,6 +16,10 @@ from utils01 import DiscriptorGenerator
 OUTDIR = 'workspace/01-make-datasets'
 CUTOFF_RADIUS = 1.0
 TRAIN_SIZE = 0.75  # used if validation data is specified
+
+TRAIN_NAME = "training"
+EXPLANATORY_NAME = "x"
+RESPONSE_NAME = "y"
 
 
 def main():
@@ -81,11 +87,29 @@ def main():
 
     discriptor_generator()
 
+    shuffle_traindata(args.o)
+
 
 def check_output(outpath):
     if os.path.isfile(outpath):
         print(f'Error: "{outpath}" already existing! If you force to do, use the -f option.')
         sys.exit(1)
+
+
+def shuffle_traindata(datapath):
+    with h5py.File(datapath, mode='r+') as f:
+        # prepare data
+        X_train = da.from_array(f[f'/{TRAIN_NAME}/{EXPLANATORY_NAME}'])
+        Y_train = da.from_array(f[f'/{TRAIN_NAME}/{RESPONSE_NAME}'])
+
+        ramdom_order = da.random.permutation(X_train.shape[0])
+
+        X_train = X_train[ramdom_order]
+        Y_train = Y_train[ramdom_order]
+
+        da.to_hdf5(datapath, f'/{TRAIN_NAME}/{EXPLANATORY_NAME}', X_train)
+        da.to_hdf5(datapath, f'/{TRAIN_NAME}/{RESPONSE_NAME}', Y_train)
+
 
 if __name__ == '__main__':
     main()

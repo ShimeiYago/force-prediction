@@ -85,12 +85,8 @@ def main():
             generator=train_generator,
             epochs=len(LRLIST),
             callbacks=[lr_scheduler, csv_logger],
+            shuffle=True,
             verbose=2)
-
-
-def remove_mmap(outdir):
-    for fp in glob.glob(f"{outdir}/*.mmap"):
-        os.remove(fp)
 
 
 if __name__ == '__main__':

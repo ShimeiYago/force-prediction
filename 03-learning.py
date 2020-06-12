@@ -81,8 +81,8 @@ def main():
         model = dnn(args.model)
 
         # datasets generator
-        train_generator = MySequence(N_datasets_train, batchsize, X_train, Y_train, shuffle=False)
-        val_generator = MySequence(N_datasets_val, batchsize, X_val, Y_val, shuffle=False)
+        train_generator = MySequence(N_datasets_train, batchsize, X_train, Y_train)
+        val_generator = MySequence(N_datasets_val, batchsize, X_val, Y_val)
 
         # learningRateScheduler
         lr_step_decay = LearningRate_StepDecay(args.epochs, args.lr)
@@ -94,6 +94,7 @@ def main():
             validation_data=val_generator,
             epochs=args.epochs,
             callbacks=[lr_scheduler, checkpoint, csv_logger],
+            shuffle=True,
             verbose=2)
 
 
