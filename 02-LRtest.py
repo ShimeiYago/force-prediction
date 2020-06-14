@@ -35,9 +35,8 @@ def main():
 
     # ## path ## #
     keyword = os.path.splitext(os.path.basename(args.input))[0] + f'-model{args.model:02d}'
-    outdir = os.path.join(OUTDIR, keyword)
-    os.makedirs(outdir, exist_ok=True)
-    history_path = os.path.join(outdir, f'{keyword}.csv')
+    os.makedirs(OUTDIR, exist_ok=True)
+    history_path = os.path.join(OUTDIR, f'{keyword}.csv')
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', type=str,
