@@ -46,6 +46,7 @@ def main():
         plt.ylabel('loss')
         plt.legend(bbox_to_anchor=(1, 1), loc='upper right', borderaxespad=0)
         plt.savefig(outpath)
+        plt.close()
 
 
 def load_history_csv(filepath_list):
