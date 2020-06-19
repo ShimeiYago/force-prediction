@@ -21,7 +21,8 @@ class DNN:
 
     def model1(self):
         model = Sequential()
-        model.add(Dense(200, input_dim=self.input_dim, activation='tanh'))
+        model.add(Dense(400, input_dim=self.input_dim, activation='tanh'))
+        model.add(Dense(200, activation='tanh'))
         model.add(Dense(100, activation='tanh'))
         model.add(Dense(50, activation='tanh'))
         model.add(Dense(30, activation='tanh'))
@@ -35,8 +36,10 @@ class DNN:
 
     def model2(self):
         model = Sequential()
-        model.add(Dense(200, input_dim=self.input_dim, activation='tanh'))
-        model.add(Dense(100, activation='tanh'))
+        model.add(Dense(800, input_dim=self.input_dim, activation='tanh'))
+        model.add(Dense(600, activation='tanh'))
+        model.add(Dense(400, activation='tanh'))
+        model.add(Dense(200, activation='tanh'))
         model.add(Dense(100, activation='tanh'))
         model.add(Dense(50, activation='tanh'))
         model.add(Dense(30, activation='tanh'))
@@ -50,9 +53,10 @@ class DNN:
 
     def model3(self):
         model = Sequential()
-        model.add(Dense(300, input_dim=self.input_dim, activation='tanh'))
+        model.add(Dense(800, input_dim=self.input_dim, activation='tanh'))
+        model.add(Dense(600, activation='tanh'))
+        model.add(Dense(400, activation='tanh'))
         model.add(Dense(200, activation='tanh'))
-        model.add(Dense(100, activation='tanh'))
         model.add(Dense(100, activation='tanh'))
         model.add(Dense(100, activation='tanh'))
         model.add(Dropout(0.5))
@@ -68,7 +72,7 @@ class DNN:
 
     def model4(self):
         model = Sequential()
-        model.add(Dense(200, input_dim=self.input_dim, activation='tanh'))
+        model.add(Dense(400, input_dim=self.input_dim, activation='tanh'))
         model.add(Dense(100, activation='tanh'))
         model.add(Dense(50, activation='tanh'))
         model.add(Dense(10, activation='tanh'))

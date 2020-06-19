@@ -35,6 +35,11 @@ def main():
     parser.add_argument('--model', type=int, default=1, help='model number')
 
     parser.add_argument('--weight', type=str, help='model weight path if take over')
+
+    parser.add_argument('--on_memory', action='store_true', help='rapidly but use much memory')
+
+    parser.add_argument('-a', '--atom', type=str, required=True,
+                        help='designate atom species name ("CA", "N", "C", etc.)')
     args = parser.parse_args()
 
     # ## path ## #
@@ -63,10 +68,10 @@ def main():
     # ## learning ## #
     with h5py.File(args.input, mode='r') as f:
         # prepare data
-        X_train = f[f'/{TRAIN_NAME}/{EXPLANATORY_NAME}']
-        Y_train = f[f'/{TRAIN_NAME}/{RESPONSE_NAME}']
-        X_val = f[f'/{VAL_NAME}/{EXPLANATORY_NAME}']
-        Y_val = f[f'/{VAL_NAME}/{RESPONSE_NAME}']
+        X_train = f[f'/{args.atom}/{TRAIN_NAME}/{EXPLANATORY_NAME}']
+        Y_train = f[f'/{args.atom}/{TRAIN_NAME}/{RESPONSE_NAME}']
+        X_val = f[f'/{args.atom}/{VAL_NAME}/{EXPLANATORY_NAME}']
+        Y_val = f[f'/{args.atom}/{VAL_NAME}/{RESPONSE_NAME}']
 
         N_datasets_train = X_train.shape[0]
         N_datasets_val = X_val.shape[0]
@@ -91,8 +96,8 @@ def main():
             init_epoch = 0
 
         # datasets generator
-        train_generator = MySequence(N_datasets_train, batchsize, X_train, Y_train)
-        val_generator = MySequence(N_datasets_val, batchsize, X_val, Y_val)
+        train_generator = MySequence(N_datasets_train, batchsize, X_train, Y_train, args.on_memory)
+        val_generator = MySequence(N_datasets_val, batchsize, X_val, Y_val, args.on_memory)
 
         # learningRateScheduler
         lr_step_decay = LearningRate_StepDecay(args.epochs, args.lr)
@@ -120,11 +125,12 @@ def save_options(args, fp):
     with open(fp, mode='w') as f:
         f.write(
             f'input file:\t{args.input}'
+            f'target Atom:\t{args.atom}'
             f'epochs:\t{args.epochs}'
             f'\ninit lr:\t{args.lr}'
             f'\nbatch:\t{args.batch}'
             f'\nmodel number:\t{args.model}'
-            f'\ntake over from "{args.weight}"')
+            f'\ntake over:\t"{args.weight}"')
 
 
 if __name__ == '__main__':

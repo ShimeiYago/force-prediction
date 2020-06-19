@@ -31,24 +31,14 @@ def main():
                         help='input datasets')
     parser.add_argument('-b', '--batch', type=int, help='batch size')
     parser.add_argument('--model', type=int, default=1, help='model number')
+    parser.add_argument('--on_memory', action='store_true', help='rapidly but use much memory')
+    parser.add_argument('-a', '--atom', type=str, required=True,
+                        help='designate atom species name ("CA", "N", "C", etc.)')
     args = parser.parse_args()
 
     # ## path ## #
-    keyword = os.path.splitext(os.path.basename(args.input))[0] + f'-model{args.model:02d}'
+    keyword = os.path.splitext(os.path.basename(args.input))[0] + f'-{args.atom}-model{args.model:02d}'
     os.makedirs(OUTDIR, exist_ok=True)
-    history_path = os.path.join(OUTDIR, f'{keyword}.csv')
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', type=str,
-                        default=os.path.join(INPUTDIR, 'datasets.hdf5'),
-                        help='input datasets')
-    parser.add_argument('-b', '--batch', type=int, help='batch size')
-    parser.add_argument('--model', type=int, default=1, help='model number')
-    args = parser.parse_args()
-
-    # ## path ## #
-    os.makedirs(OUTDIR, exist_ok=True)
-    keyword = os.path.splitext(os.path.basename(args.input))[0] + f'-model{args.model:02d}'
     history_path = os.path.join(OUTDIR, f'{keyword}.csv')
 
     # ## callback ## #
@@ -62,8 +52,8 @@ def main():
     # ## LRtest ## #
     with h5py.File(args.input, mode='r') as f:
         # prepare data
-        X_train = f[f'/{TRAIN_NAME}/{EXPLANATORY_NAME}']
-        Y_train = f[f'/{TRAIN_NAME}/{RESPONSE_NAME}']
+        X_train = f[f'/{args.atom}/{TRAIN_NAME}/{EXPLANATORY_NAME}']
+        Y_train = f[f'/{args.atom}/{TRAIN_NAME}/{RESPONSE_NAME}']
 
         N_datasets = X_train.shape[0]
         INPUT_DIM = X_train.shape[1]
@@ -77,7 +67,7 @@ def main():
             args.batch = N_datasets // 50
 
         # datasets generator
-        train_generator = MySequence(N_datasets, args.batch, X_train, Y_train)
+        train_generator = MySequence(N_datasets, args.batch, X_train, Y_train, args.on_memory)
 
         # learning
         model.fit_generator(

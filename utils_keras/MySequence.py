@@ -3,13 +3,17 @@ import math
 
 
 class MySequence(Sequence):
-    def __init__(self, N_datasets, batch_size, X, Y):
+    def __init__(self, N_datasets, batch_size, X, Y, on_memory):
         self.N_datasets = N_datasets
         self.batch_size = batch_size
         self.N_iteration = math.ceil(N_datasets / batch_size)
 
-        self.X = X
-        self.Y = Y
+        if on_memory:
+            self.X = X[...]
+            self.Y = Y[...]
+        else:
+            self.X = X
+            self.Y = Y
 
     def __getitem__(self, idx):
         start_idx = idx * self.batch_size
