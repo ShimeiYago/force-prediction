@@ -125,8 +125,8 @@ def save_options(args, fp):
     with open(fp, mode='w') as f:
         f.write(
             f'input file:\t{args.input}'
-            f'target Atom:\t{args.atom}'
-            f'epochs:\t{args.epochs}'
+            f'\ntarget Atom:\t{args.atom}'
+            f'\nepochs:\t{args.epochs}'
             f'\ninit lr:\t{args.lr}'
             f'\nbatch:\t{args.batch}'
             f'\nmodel number:\t{args.model}'

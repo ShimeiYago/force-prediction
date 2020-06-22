@@ -6,6 +6,7 @@ import sys
 import numpy as np
 import dask.array as da
 import h5py
+import pickle
 
 from utils01 import ReadXVGs
 from utils01 import Nearest2indeces
@@ -103,10 +104,15 @@ def main():
         print(f'--- Creating datasets {atom} ---')
         discriptor_generator(atom)
 
-
     # ## shuffle ## #
     print('--- Shuffling Training datasets ---')
     shuffle_traindata(args.o)
+
+    # ## save parameters ## #
+    param_path = os.path.splitext(args.o)[0] + '.param'
+    with open(param_path, 'wb') as f:
+        pickle.dump(discriptor_generator.PARAMS, f)
+        pickle.dump(1, f)
 
 
 def check_output(outpath):

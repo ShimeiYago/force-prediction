@@ -32,6 +32,12 @@ class DiscriptorGenerator:
         # atom list
         self.ATOM_NAMES = [atom for atom in self.train_coords.keys()]
 
+        # save parameter
+        self.PARAMS = {}
+        self.PARAMS['atoms'] = self.ATOM_NAMES
+        self.PARAMS['ab_indeces'] = self.ab_indeces
+
+
     def __call__(self, target_atom):
         self.target_atom = target_atom
 
@@ -58,6 +64,9 @@ class DiscriptorGenerator:
 
         # ## normalize ## #
         self._normalize()
+
+        # ## save params ## #
+        self._save_params()
 
         # ## output final shape ## #
         with h5py.File(self.OUTPATH, mode='r') as f:
@@ -215,7 +224,7 @@ class DiscriptorGenerator:
                     break
                 d = np.delete(d, obj=0, axis=0)
             D[atom] = d
-            
+
         #  cut
         D = {atom: d[:self.MAX_N_ATOMS[atom]] for atom, d in D.items()}
 
@@ -236,24 +245,21 @@ class DiscriptorGenerator:
             val_y = da.from_array(f[f'/{self.target_atom}/{self.VAL_NAME}/{self.RESPONSE_NAME}'], chunks=("auto", 3))
 
             total_y = da.concatenate([train_y, val_y], axis=0)
-            y_mean = da.mean(total_y.reshape(-1), axis=0).compute()
-            y_std = da.std(total_y.reshape(-1), axis=0).compute()
+            self.y_mean = da.mean(total_y.reshape(-1), axis=0).compute()
+            self.y_std = da.std(total_y.reshape(-1), axis=0).compute()
 
             # normalize
-            train_y = da.divide(da.subtract(train_y, y_mean), y_std)
-            val_y = da.divide(da.subtract(val_y, y_mean), y_std)
+            train_y = da.divide(da.subtract(train_y, self.y_mean), self.y_std)
+            val_y = da.divide(da.subtract(val_y, self.y_mean), self.y_std)
 
             # save
             da.to_hdf5(self.OUTPATH, f'/{self.target_atom}/{self.TRAIN_NAME}/{self.RESPONSE_NAME}', train_y)
             da.to_hdf5(self.OUTPATH, f'/{self.target_atom}/{self.VAL_NAME}/{self.RESPONSE_NAME}', val_y)
 
-        # ## save normalization values ## #
-        with h5py.File(self.OUTPATH, mode='r+') as f:
-            normalization = f.create_dataset(
-                name=f'/{self.target_atom}/normalization', shape=(3,), dtype=np.float64)
-            normalization[...] = np.array(
-                [self.MAX_RECIPROCAL_DADIUS, y_mean, y_std])
-
         print(
             f'MAX_RECIPROCAL_DADIUS: {self.MAX_RECIPROCAL_DADIUS:.3f}\n' +
-            f'y_mean: {y_mean:.3f}\ny_std: {y_std:.3f}')
+            f'y_mean: {self.y_mean:.3f}\ny_std: {self.y_std:.3f}')
+
+
+    def _save_params(self):
+        self.PARAMS[self.target_atom] = [self.MAX_RECIPROCAL_DADIUS, self.y_mean, self.y_std]

@@ -12,6 +12,8 @@ class ReadXVGs:
 
         self.atomlist = []
         with open(gropath) as f:
+            f.readline()
+            f.readline()
             for line in f:
                 atom = line[13:15].strip()
                 if atom in MAINCHAIN:
