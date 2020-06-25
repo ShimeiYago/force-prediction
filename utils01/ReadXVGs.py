@@ -2,22 +2,11 @@ import dask.array as da
 import dask.dataframe as ddf
 import sys
 
-MAINCHAIN = ['N', 'CA', 'C', 'O']
-
 
 class ReadXVGs:
-    def __init__(self, init_time: int, maxlen: int, gropath: str):
+    def __init__(self, init_time: int, maxlen: int):
         self.init_time = init_time
         self.maxlen = maxlen
-
-        self.atomlist = []
-        with open(gropath) as f:
-            f.readline()
-            f.readline()
-            for line in f:
-                atom = line[13:15].strip()
-                if atom in MAINCHAIN:
-                    self.atomlist.append(atom)
 
     def __call__(self, fplist: list):
         coords_list, forces_list = [], []
@@ -35,13 +24,7 @@ class ReadXVGs:
         coords = da.concatenate(coords_list, 0)
         forces = da.concatenate(forces_list, 0)
 
-        # devide into each atom
-        trjdict = {}
-        for atom_name in MAINCHAIN:
-            indeces = [i for i in range(len(self.atomlist)) if self.atomlist[i]==atom_name]
-            trjdict[atom_name] = [coords[:, indeces, :], forces[:, indeces, :]]
-
-        return trjdict
+        return coords, forces
 
     def _read_xvg(self, filepath: str):
         data = ddf.read_csv(filepath, comment='@', delimiter='\t',

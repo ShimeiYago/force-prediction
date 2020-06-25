@@ -6,201 +6,128 @@ import time
 
 
 class DiscriptorGenerator:
-    def __init__(self, train_dict, val_dict,
-                 CUTOFF_RADIUS, outpath, batchsize, ab_indeces,
-                 TRAIN_NAME, VAL_NAME, EXPLANATORY_NAME, RESPONSE_NAME):
-        self.train_coords = {atom: trj[0] for atom, trj in train_dict.items()}
-        self.train_forces = {atom: trj[1] for atom, trj in train_dict.items()}
-        self.val_coords = {atom: trj[0] for atom, trj in val_dict.items()}
-        self.val_forces = {atom: trj[1] for atom, trj in val_dict.items()}
+    def __init__(self, outpath, batchsize,
+                 mainchain, atom_align, n_atoms, eachatom_indeces,
+                 adjacent_indeces, ab_indeces, max_n_adjacent,
+                 EXPLANATORY_NAME, RESPONSE_NAME):
 
-        self.CUTOFF_RADIUS = CUTOFF_RADIUS
         self.OUTPATH = outpath
         self.BATCHSIZE = batchsize
-        self.ab_indeces = ab_indeces
 
-        self.TRAIN_NAME = TRAIN_NAME
-        self.VAL_NAME = VAL_NAME
+        self.MAINCHAIN = mainchain
+        self.ATOM_ALIGN = atom_align
+        self.N_ATOMS = n_atoms
+        self.EACHATOM_INDECES = eachatom_indeces
+        self.AB_INDECES = ab_indeces
+
+        self.ADJACENT_INDECES = self._rewrite_indeces(adjacent_indeces, max_n_adjacent)
+        self.INPUTDIM = self.ADJACENT_INDECES.shape[1] * 4
+
         self.EXPLANATORY_NAME = EXPLANATORY_NAME
         self.RESPONSE_NAME = RESPONSE_NAME
 
-        self.MAX_RECIPROCAL_DADIUS = 0
+        self.MAX_RECIPROCAL_DADIUS = 10
 
-        # define N_ATOMS
-        self.N_ATOMS = {atom: coords.shape[1] for atom, coords in self.train_coords.items()}
+    def _rewrite_indeces(self, adjacent_indeces, max_n_adjacent):
+        # maxになるように自分自身のindexで埋める
+        new_adjacent_indeces = adjacent_indeces
+        for i in range(len(adjacent_indeces)):
+            for j in range(len(adjacent_indeces[i])):
+                new_adjacent_indeces[i][j] = adjacent_indeces[i][j] + [i] * (max_n_adjacent[j] - len(adjacent_indeces[i][j]))
 
-        # atom list
-        self.ATOM_NAMES = [atom for atom in self.train_coords.keys()]
+        # join
+        adjacent_indeces = new_adjacent_indeces
+        for i in range(len(adjacent_indeces)):
+            adjacent_indeces_i = []
+            for j in range(len(adjacent_indeces[i])):
+                adjacent_indeces_i = adjacent_indeces_i + adjacent_indeces[i][j]
+            adjacent_indeces[i] = adjacent_indeces_i
 
-        # save parameter
-        self.PARAMS = {}
-        self.PARAMS['atoms'] = self.ATOM_NAMES
-        self.PARAMS['ab_indeces'] = self.ab_indeces
+        adjacent_indeces = np.array(adjacent_indeces)
+        return adjacent_indeces
 
 
-    def __call__(self, target_atom):
-        self.target_atom = target_atom
-
+    def __call__(self, coords, forces, groupname):
         # ## preprocess ## #
-        self.train_descriptors = {atom: self._preprocess(self.train_coords, atom) for atom in self.train_coords.keys()}
-        self.val_descriptors = {atom: self._preprocess(self.val_coords, atom) for atom in self.val_coords.keys()}
-
-        # ## decide batchsize ## #
-        if not self.BATCHSIZE:
-            self._decide_batchsize(100)
-
-        # ## caluclate MAX_ATOMS ## #
-        self._cal_max_params()
-        print(f'MAX_N_ATOMS: {self.MAX_N_ATOMS}')
+        descriptors = self._preprocess(coords)
 
         # ## main process ## #
-
-        # ## input dim ## #
-        self.INPUTDIM = sum([n for n in self.MAX_N_ATOMS.values()]) * 4 \
-            + self.N_ATOMS[self.target_atom]
-
-        self._mainprocess(self.train_descriptors, self.train_forces[self.target_atom], self.TRAIN_NAME)
-        self._mainprocess(self.val_descriptors, self.val_forces[self.target_atom], self.VAL_NAME)
-
-        # ## normalize ## #
-        self._normalize()
-
-        # ## save params ## #
-        self._save_params()
+        self._mainprocess(descriptors, forces, groupname)
 
         # ## output final shape ## #
         with h5py.File(self.OUTPATH, mode='r') as f:
-            train_x = f[f'/{self.target_atom}/{self.TRAIN_NAME}/{self.EXPLANATORY_NAME}']
-            train_y = f[f'/{self.target_atom}/{self.TRAIN_NAME}/{self.RESPONSE_NAME}']
-            val_x = f[f'/{self.target_atom}/{self.VAL_NAME}/{self.EXPLANATORY_NAME}']
-            val_y = f[f'/{self.target_atom}/{self.VAL_NAME}/{self.RESPONSE_NAME}']
-
-            print('train_x:', train_x.shape)
-            print('train_y:', train_y.shape)
-            print('val_x:', val_x.shape)
-            print('val_y:', val_y.shape)
+            for atom in self.MAINCHAIN:
+                X = f[f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}']
+                Y = f[f'/{atom}/{groupname}/{self.RESPONSE_NAME}']
+            
+            print(f'X: {X.shape}\nY: {Y.shape}')
 
 
-    def _preprocess(self, coords, nearby_atom):  # da.array function
-        nearby_coords = coords[nearby_atom]
-        nearby_coords = da.tile(nearby_coords, (1, self.N_ATOMS[self.target_atom], 1)).reshape(nearby_coords.shape[0], self.N_ATOMS[self.target_atom], self.N_ATOMS[nearby_atom], 3)
-        nearby_coords = nearby_coords.rechunk(chunks=('auto', -1, -1, -1))
+    def _preprocess(self, coords):  # da.array function
+        adjacent_coords = da.tile(coords, (1, self.N_ATOMS, 1)).reshape(coords.shape[0], self.N_ATOMS, self.N_ATOMS, 3)
+        adjacent_coords = adjacent_coords.rechunk(chunks=('auto', -1, -1, -1))
 
-        target_coords = coords[self.target_atom]
-        target_coords = da.tile(target_coords, (1, self.N_ATOMS[nearby_atom], 1)).reshape(target_coords.shape[0], self.N_ATOMS[nearby_atom], self.N_ATOMS[self.target_atom],  3)
-        target_coords = target_coords.rechunk(chunks=('auto', -1, -1, -1))
-
-        descriptors = da.subtract(nearby_coords, target_coords.transpose(0, 2, 1, 3))
-        descriptors = descriptors.reshape(-1, self.N_ATOMS[nearby_atom], 3)
+        descriptors = da.subtract(
+            adjacent_coords,
+            adjacent_coords.transpose(0, 2, 1, 3))
 
         return descriptors
 
-    def _decide_batchsize(self, n_unit):
-        N_train_datasets = self.train_descriptors[self.ATOM_NAMES[0]].shape[0]
-        self.BATCHSIZE = N_train_datasets // n_unit
 
-    def _cal_max_params(self, width=5):
-        self.MAX_N_ATOMS = {}
-        for atom, desc in self.train_descriptors.items():
-            radiuses = np.linalg.norm(desc[:self.BATCHSIZE*width].compute(), axis=2, ord=2)
-            max_atoms = np.max(np.count_nonzero((radiuses <= 1.0) & (radiuses > 0), axis=1))
-            self.MAX_N_ATOMS[atom] = max_atoms
-
-            max_reciprocal_radius = 1 / np.min(radiuses[radiuses!=0])
-            self.MAX_RECIPROCAL_DADIUS = max(self.MAX_RECIPROCAL_DADIUS, max_reciprocal_radius)
-
-
-    def _mainprocess(self, descriptors, forces, groupname):
-        N_datasets = descriptors[self.ATOM_NAMES[0]].shape[0]
+    def _mainprocess(self, total_descriptors, total_forces, groupname):
+        N_frames = total_descriptors.shape[0]
 
         with h5py.File(self.OUTPATH, mode='r+') as f:
-            X = f.create_dataset(
-                name=f'/{self.target_atom}/{groupname}/{self.EXPLANATORY_NAME}', shape=(N_datasets, self.INPUTDIM),
-                compression='gzip', dtype=np.float64)
-            Y = f.create_dataset(
-                name=f'/{self.target_atom}/{groupname}/{self.RESPONSE_NAME}', shape=forces.shape,
-                compression='gzip', dtype=np.float64)
+            for atom in self.MAINCHAIN:
+                f.create_dataset(
+                    name=f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}', shape=(N_frames * self.N_ATOMS, self.INPUTDIM),
+                    compression='gzip', dtype=np.float64)
+                f.create_dataset(
+                    name=f'/{atom}/{groupname}/{self.RESPONSE_NAME}', shape=(N_frames * self.N_ATOMS, 3),
+                    compression='gzip', dtype=np.float64)
 
         # the process
-        part_index_list = list(range(0, N_datasets, self.BATCHSIZE)) + [N_datasets]
-        N_process = math.ceil(N_datasets / self.BATCHSIZE)
+        part_index_list = list(range(0, N_frames, self.BATCHSIZE)) + [N_frames]
+        N_process = math.ceil(N_frames / self.BATCHSIZE)
         for i in range(N_process):
             start_time = time.time()
             l, u = part_index_list[i:i+2]
             part_length = u - l
-            part_descriptors = {atom: desc[l:u].compute() for atom, desc in descriptors.items()}
-            part_forces = forces[l:u].compute()
+            descriptors = total_descriptors[l:u].compute()
+            forces = total_forces[l:u].compute()
 
-            part_indeces = np.array([self._get_index(D) for D in part_descriptors[self.target_atom]])
+            results = [self._descriptor(d) for d in descriptors]
 
-            rot_matrices = np.array([
-                self._cal_rotation_matrix(
-                    part_indeces[i],
-                    {atom: desc[i] for atom, desc in part_descriptors.items()})
-                for i in range(part_length)])
+            discriptors = np.array([r[0] for r in results])
+            rot_matrices = np.array([r[1] for r in results])
 
-            # rotate
-            for atom in self.ATOM_NAMES:
-                part_descriptors[atom] = np.array([
-                    np.dot(part_descriptors[atom][i], rot_matrices[i]) for i in range(part_length)])
-
-            part_forces = np.array([np.dot(part_forces[i], rot_matrices[i]) for i in range(part_forces.shape[0])])
-
-            # add radius
-            for atom, desc in part_descriptors.items():
-                part_radiuses = np.linalg.norm(desc, axis=2, ord=2)
-                part_descriptors[atom] = np.concatenate(
-                    [desc,
-                     part_radiuses.reshape(part_radiuses.shape[0], part_radiuses.shape[1], 1)],
-                    axis=2)
-                del part_radiuses
-
-            # descriptor
-            part_descriptors = np.array(
-                [self._descriptor({atom: desc[i] for atom, desc in part_descriptors.items()})
-                 for i in range(part_length)])
-
-            # normalize x
-            part_descriptors = np.divide(
-                part_descriptors,
-                np.array([self.MAX_RECIPROCAL_DADIUS, 1, 1, 1])
-                )
-
-            # flatten
-            part_descriptors = part_descriptors.reshape(part_descriptors.shape[0], -1)
-
-            # add atom index (one-hot)
-            part_descriptors = np.concatenate(
-                [part_descriptors, np.identity(self.N_ATOMS[self.target_atom])[part_indeces]], axis=1)
+            # rotae force
+            forces = forces.reshape(-1, 3)
+            forces = np.array([np.dot(force, rot_matrix) for force, rot_matrix in zip(forces, rot_matrices.reshape(-1, 3, 3))])
+            forces = forces.reshape(part_length, self.N_ATOMS, 3)
 
             # save to hdf5
             with h5py.File(self.OUTPATH, mode='r+') as f:
-                X = f[f'/{self.target_atom}/{groupname}/{self.EXPLANATORY_NAME}']
-                Y = f[f'/{self.target_atom}/{groupname}/{self.RESPONSE_NAME}']
-                X[l:u] = part_descriptors
-                Y[l:u] = part_forces
+                for atom in self.MAINCHAIN:
+                    indeces = self.EACHATOM_INDECES[atom]
+                    n_atoms = len(indeces)
+                    X = f[f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}']
+                    Y = f[f'/{atom}/{groupname}/{self.RESPONSE_NAME}']
+                    X[l*n_atoms:u*n_atoms] = discriptors[:, indeces, :].reshape(-1, self.INPUTDIM)
+                    Y[l*n_atoms:u*n_atoms] = forces[:, indeces, :].reshape(-1, 3)
 
             # print progress
             elapsed_time = time.time() - start_time
-            print('\r', f'Processing {groupname} data:', i+1, '/', N_process, f' ({elapsed_time:.2f}s)', end="")
+            print('\r', i+1, '/', N_process, f' ({elapsed_time:.2f}s)', end="")
         print()
 
 
-    def _get_index(self, Ri):  # np.ndarray function
-        return np.argmin(np.sqrt(np.sum(np.square(Ri), axis=1)))
-
     def _e(self, R):  # np.ndarray function
-        radius = np.sqrt(np.sum(np.square(R)))
+        radius = np.linalg.norm(R, axis=0, ord=2)
         return np.divide(R, radius)
 
-    def _cal_rotation_matrix(self, idx, Ri):
-        # Ri[atom].shape = (309,3)
-
-        a_atom_name = self.ab_indeces[self.target_atom][0]
-        b_atom_name = self.ab_indeces[self.target_atom][1]
-        a_atom_index, b_atom_index = self.ab_indeces[self.target_atom][2][idx]
-        Ri_a = Ri[a_atom_name][a_atom_index]
-        Ri_b = Ri[b_atom_name][b_atom_index]
+    def _cal_rotation_matrix(self, Ri_a, Ri_b):
+        # Ri.shape = (,3)
 
         # rotation matrix
         e1 = self._e(Ri_a)
@@ -210,56 +137,70 @@ class DiscriptorGenerator:
 
         return rotation_matrix
 
-    def _descriptor(self, D):
-        # D[atom].shape=(N_ATOM,4)
-        # [x,y,z,r]
+    def _descriptor(self, descriptor):
+        # ## rotation matrix ## #
+        rot_matrices = np.array([
+            self._cal_rotation_matrix(struct[self.AB_INDECES[i][0]], struct[self.AB_INDECES[i][1]])
+            for i, struct in enumerate(descriptor)
+            ])
 
-        # sort
-        D = {atom: d[np.argsort(d[:, 3])] for atom, d in D.items()}
+        # ## rotate ## #
+        descriptor = np.array([np.dot(d, rot_matrix) for d, rot_matrix in zip(descriptor, rot_matrices)])
 
-        # delete zero
-        for atom, d in D.items():
-            while True:
-                if d[0, 3] != 0:
-                    break
-                d = np.delete(d, obj=0, axis=0)
-            D[atom] = d
+        # ## radius process ## #
+        radiuses = np.linalg.norm(descriptor, axis=2, ord=2).reshape(self.N_ATOMS, self.N_ATOMS, 1)
+        radiuses = np.where(radiuses==0, np.inf, radiuses)
 
-        #  cut
-        D = {atom: d[:self.MAX_N_ATOMS[atom]] for atom, d in D.items()}
+        reciprocal_radiuses = np.divide(1, radiuses)
+        reciprocal_radiuses = np.divide(reciprocal_radiuses, self.MAX_RECIPROCAL_DADIUS)  # normalize
 
-        # concat
-        D = np.concatenate([D[atom] for atom in self.ATOM_NAMES], axis=0)
+        descriptor = np.divide(descriptor, radiuses)
+        descriptor = np.concatenate([reciprocal_radiuses, descriptor], axis=2)
 
-        # descriptor
-        return np.array([
-            [1/r, x/r, y/r, z/r] if r <= self.CUTOFF_RADIUS else [0, 0, 0, 0]
-            for x, y, z, r in D])
+        descriptor = np.array([D[self.ADJACENT_INDECES[i]] for i, D in enumerate(descriptor)])
 
+        # reshape
+        descriptor = descriptor.reshape(descriptor.shape[0], -1)
 
-    def _normalize(self):
+        return descriptor, rot_matrices
+
+    def normalize(self, gropuname1, groupname2):
         # ## normalize y ## #
         with h5py.File(self.OUTPATH, mode='r+') as f:
-            # load
-            train_y = da.from_array(f[f'/{self.target_atom}/{self.TRAIN_NAME}/{self.RESPONSE_NAME}'], chunks=("auto", 3))
-            val_y = da.from_array(f[f'/{self.target_atom}/{self.VAL_NAME}/{self.RESPONSE_NAME}'], chunks=("auto", 3))
+            for atom in self.MAINCHAIN:
+                # load
+                train_y = da.from_array(f[f'/{atom}/{gropuname1}/{self.RESPONSE_NAME}'], chunks=("auto", 3))
+                val_y = da.from_array(f[f'/{atom}/{groupname2}/{self.RESPONSE_NAME}'], chunks=("auto", 3))
 
-            total_y = da.concatenate([train_y, val_y], axis=0)
-            self.y_mean = da.mean(total_y.reshape(-1), axis=0).compute()
-            self.y_std = da.std(total_y.reshape(-1), axis=0).compute()
+                total_y = da.concatenate([train_y, val_y], axis=0)
+                y_mean = da.mean(total_y.reshape(-1), axis=0).compute()
+                y_std = da.std(total_y.reshape(-1), axis=0).compute()
 
-            # normalize
-            train_y = da.divide(da.subtract(train_y, self.y_mean), self.y_std)
-            val_y = da.divide(da.subtract(val_y, self.y_mean), self.y_std)
+                # normalize
+                train_y = da.divide(da.subtract(train_y, y_mean), y_std)
+                val_y = da.divide(da.subtract(val_y, y_mean), y_std)
 
-            # save
-            da.to_hdf5(self.OUTPATH, f'/{self.target_atom}/{self.TRAIN_NAME}/{self.RESPONSE_NAME}', train_y)
-            da.to_hdf5(self.OUTPATH, f'/{self.target_atom}/{self.VAL_NAME}/{self.RESPONSE_NAME}', val_y)
+                # save
+                da.to_hdf5(self.OUTPATH, f'/{atom}/{gropuname1}/{self.RESPONSE_NAME}', train_y)
+                da.to_hdf5(self.OUTPATH, f'/{atom}/{groupname2}/{self.RESPONSE_NAME}', val_y)
 
-        print(
-            f'MAX_RECIPROCAL_DADIUS: {self.MAX_RECIPROCAL_DADIUS:.3f}\n' +
-            f'y_mean: {self.y_mean:.3f}\ny_std: {self.y_std:.3f}')
+                f.create_dataset(name=f'/{atom}/normalization', data=np.array([y_mean, y_std]))
+
+                print(f'[{atom}]\tmean: {y_mean:.3f}\tstd: {y_std:.3f}')
 
 
-    def _save_params(self):
-        self.PARAMS[self.target_atom] = [self.MAX_RECIPROCAL_DADIUS, self.y_mean, self.y_std]
+    def shuffle(self, groupname):
+        with h5py.File(self.OUTPATH, mode='r+') as f:
+            for atom in self.MAINCHAIN:
+                X = da.from_array(f[f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}'])
+                Y = da.from_array(f[f'/{atom}/{groupname}/{self.RESPONSE_NAME}'])
+
+                random_order = np.random.permutation(X.shape[0])
+
+                X = da.slicing.shuffle_slice(X, random_order)
+                Y = da.slicing.shuffle_slice(Y, random_order)
+
+                da.to_hdf5(self.OUTPATH, f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}', X)
+                da.to_hdf5(self.OUTPATH, f'/{atom}/{groupname}/{self.RESPONSE_NAME}', Y)
+
+                print(f'{atom} shuffled.')
