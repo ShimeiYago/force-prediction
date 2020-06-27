@@ -69,8 +69,15 @@ def main():
     ATOM_ALIGN = groparser.atom_align
     MAINCHAIN = groparser.mainchains
     N_ATOMS = groparser.n_atoms
+    EACH_N_ATOMS = groparser.each_n_atoms
     EACHATOM_INDECES = groparser.eachatom_indeces
     ADJACENT_INDECES, AB_INDECES, MAX_N_ADJACENT = groparser.cal_adjacent(CUTOFF_RADIUS)
+
+    # print target atoms
+    print('Traget Atoms:', end="")
+    for atom in MAINCHAIN:
+        print(f' {atom}({EACH_N_ATOMS[atom]})', end=",")
+    print()
 
 
     # ## make descriptor ## #
@@ -84,11 +91,9 @@ def main():
     # instance
     discriptor_generator = DiscriptorGenerator(
         args.o, batchsize,
-        MAINCHAIN, ATOM_ALIGN, N_ATOMS, EACHATOM_INDECES,
+        MAINCHAIN, ATOM_ALIGN, N_ATOMS, EACH_N_ATOMS, EACHATOM_INDECES,
         ADJACENT_INDECES, AB_INDECES, MAX_N_ADJACENT,
         EXPLANATORY_NAME, RESPONSE_NAME)
-    
-    print(f'traget Atoms: {MAINCHAIN}')
 
     # process train data
     print('--- Process Training data ---')

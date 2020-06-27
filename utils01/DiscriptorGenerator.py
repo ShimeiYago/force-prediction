@@ -7,7 +7,7 @@ import time
 
 class DiscriptorGenerator:
     def __init__(self, outpath, batchsize,
-                 mainchain, atom_align, n_atoms, eachatom_indeces,
+                 mainchain, atom_align, n_atoms, each_n_atoms, eachatom_indeces,
                  adjacent_indeces, ab_indeces, max_n_adjacent,
                  EXPLANATORY_NAME, RESPONSE_NAME):
 
@@ -17,6 +17,7 @@ class DiscriptorGenerator:
         self.MAINCHAIN = mainchain
         self.ATOM_ALIGN = atom_align
         self.N_ATOMS = n_atoms
+        self.EACH_N_ATOMS = each_n_atoms
         self.EACHATOM_INDECES = eachatom_indeces
         self.AB_INDECES = ab_indeces
 
@@ -60,7 +61,7 @@ class DiscriptorGenerator:
                 X = f[f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}']
                 Y = f[f'/{atom}/{groupname}/{self.RESPONSE_NAME}']
             
-            print(f'X: {X.shape}\nY: {Y.shape}')
+                print(f'[{atom}]\tX: {X.shape}\tY: {Y.shape}')
 
 
     def _preprocess(self, coords):  # da.array function
@@ -79,11 +80,12 @@ class DiscriptorGenerator:
 
         with h5py.File(self.OUTPATH, mode='r+') as f:
             for atom in self.MAINCHAIN:
+                n_datasets = N_frames * self.EACH_N_ATOMS[atom]
                 f.create_dataset(
-                    name=f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}', shape=(N_frames * self.N_ATOMS, self.INPUTDIM),
+                    name=f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}', shape=(n_datasets, self.INPUTDIM),
                     compression='gzip', dtype=np.float64)
                 f.create_dataset(
-                    name=f'/{atom}/{groupname}/{self.RESPONSE_NAME}', shape=(N_frames * self.N_ATOMS, 3),
+                    name=f'/{atom}/{groupname}/{self.RESPONSE_NAME}', shape=(n_datasets, 3),
                     compression='gzip', dtype=np.float64)
 
         # the process
@@ -110,11 +112,13 @@ class DiscriptorGenerator:
             with h5py.File(self.OUTPATH, mode='r+') as f:
                 for atom in self.MAINCHAIN:
                     indeces = self.EACHATOM_INDECES[atom]
-                    n_atoms = len(indeces)
+                    ll = l * self.EACH_N_ATOMS[atom]
+                    uu = u * self.EACH_N_ATOMS[atom]
+
                     X = f[f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}']
                     Y = f[f'/{atom}/{groupname}/{self.RESPONSE_NAME}']
-                    X[l*n_atoms:u*n_atoms] = discriptors[:, indeces, :].reshape(-1, self.INPUTDIM)
-                    Y[l*n_atoms:u*n_atoms] = forces[:, indeces, :].reshape(-1, 3)
+                    X[ll:uu] = discriptors[:, indeces, :].reshape(-1, self.INPUTDIM)
+                    Y[ll:uu] = forces[:, indeces, :].reshape(-1, 3)
 
             # print progress
             elapsed_time = time.time() - start_time

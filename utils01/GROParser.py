@@ -31,6 +31,8 @@ class GROParser:
         self.eachatom_indeces = {}
         for atom in MAINCHAIN:
             self.eachatom_indeces[atom] = [i for i in range(self.n_atoms) if self.atom_align[i] == atom]
+        
+        self.each_n_atoms = {atom: len(indeces) for atom, indeces in self.eachatom_indeces.items()}
 
     def cal_adjacent(self, cutoff_radius):
         # define indeces
