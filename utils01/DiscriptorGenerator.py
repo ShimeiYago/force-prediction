@@ -60,7 +60,7 @@ class DiscriptorGenerator:
             for atom in self.MAINCHAIN:
                 X = f[f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}']
                 Y = f[f'/{atom}/{groupname}/{self.RESPONSE_NAME}']
-            
+
                 print(f'[{atom}]\tX: {X.shape}\tY: {Y.shape}')
 
 
