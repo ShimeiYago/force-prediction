@@ -16,9 +16,10 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 DATASETDIR = "workspace/01-make-datasets"
 CUTOFF_RADIUS = 1.0
-MASS = {'CA': 12.0107, 'C': 12.0107, 'O': 15.999, 'N': 14.0067}
+MASS = {'CA': 12.01100, 'C': 12.01100, 'O': 15.99900, 'N': 14.00700}
 DT = 0.002
-OUTPATH = "workspace/04-simulate/trj.npy"
+OUTDIR = "workspace/04-simulate"
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -35,68 +36,36 @@ def main():
     parser.add_argument('--len', type=int, default=5000, help='simulation length')
     args = parser.parse_args()
 
-    os.makedirs(os.path.dirname(OUTPATH), exist_ok=True)
-
-    # init strcuct
-    init_structs = ReadXVGs(None, None)._read_xvg(args.coords)[args.init_time:args.init_time+2].compute()
+    os.makedirs(OUTDIR, exist_ok=True)
 
     # ## load gro file ## #
-    groparser = GROParser(args.gro)
-    ATOM_ALIGN = groparser.atom_align
+    groparser = GROParser(args.gro, CUTOFF_RADIUS)
     MAINCHAIN = groparser.mainchains
     N_ATOMS = groparser.n_atoms
     EACH_N_ATOMS = groparser.each_n_atoms
-    EACHATOM_INDECES = groparser.eachatom_indeces
-    ADJACENT_INDECES, AB_INDECES, MAX_N_ADJACENT = groparser.cal_adjacent(CUTOFF_RADIUS)
+    SLICE_INDECES = groparser.slice_indeces
+    ARRANGED_INDECES = groparser.arranged_indeces
+    REARRANGED_INDECES = groparser.rearranged_indeces
+    ADJACENT_INDECES = groparser.adjacent_indeces
+    AB_INDECES = groparser.ab_indeces
+    MAX_N_ADJACENT = groparser.max_n_adjacent
+    ATOM_ALIGN = groparser.atom_align
 
-
-    # ## arrange ## #
-    arranged_indeces = []
-    for atom in MAINCHAIN:
-        arranged_indeces.extend(EACHATOM_INDECES[atom])
-
-    init_structs = init_structs[:, arranged_indeces, :]
-
-    i = 0
-    ATOM_ALIGN = []
-    slice_indeces = {}
-    for atom in MAINCHAIN:
-        j = i+len(EACHATOM_INDECES[atom])
-        slice_indeces[atom] = [i, j]
-        ATOM_ALIGN = ATOM_ALIGN + [atom] * (j-i)
-        i = j
-
-    EACHATOM_INDECES = {atom: list(range(i, j)) for atom, [i, j] in slice_indeces.items()}
-
-    index_convert_dict = {orig_index: new_index for new_index, orig_index in enumerate(arranged_indeces)}
-
-    for i in range(len(ADJACENT_INDECES)):
-        for j in range(len(ADJACENT_INDECES[i])):
-            for k in range(len(ADJACENT_INDECES[i][j])):
-                ADJACENT_INDECES[i][j][k] = index_convert_dict[ADJACENT_INDECES[i][j][k]]
-        
-    for i in range(len(AB_INDECES)):
-        for j in range(len(AB_INDECES[i])):
-            AB_INDECES[i][j] = index_convert_dict[AB_INDECES[i][j]]
-
-    temp_ADJACENT_INDECES = ADJACENT_INDECES
-    temp_AB_INDECES = AB_INDECES
-    for i, j in enumerate(arranged_indeces):
-        ADJACENT_INDECES[i] = temp_ADJACENT_INDECES[j]
-        AB_INDECES[i] = temp_AB_INDECES[j]
-
+    # ## init strcuct ## #
+    init_structs = ReadXVGs(None, None, ARRANGED_INDECES)._read_xvg(args.coords)[args.init_time:args.init_time+2].compute()
+    init_structs = init_structs[:, ARRANGED_INDECES, :]
 
     # ## discriptor generator ## #
     discriptor_generator = DiscriptorGenerator(
         None, None,
-        MAINCHAIN, ATOM_ALIGN, N_ATOMS, EACH_N_ATOMS, EACHATOM_INDECES,
+        MAINCHAIN, N_ATOMS, EACH_N_ATOMS, SLICE_INDECES,
         ADJACENT_INDECES, AB_INDECES, MAX_N_ADJACENT,
         None, None)
 
     # ## read models ## #
     dnn = DNN(discriptor_generator.INPUTDIM, None)
     Nmodel = dnn(args.model)
-    Nmodel .load_weights(args.weights[0])
+    Nmodel.load_weights(args.weights[0])
     CAmodel = dnn(args.model)
     CAmodel.load_weights(args.weights[1])
     Cmodel = dnn(args.model)
@@ -107,10 +76,12 @@ def main():
 
 
     # ## normalization values ## #
+    normalization = {}
     with h5py.File("workspace/01-make-datasets/datasets.hdf5", mode='r') as f:
         for atom in MAINCHAIN:
             y_mean, y_std = f[f'/{atom}/normalization'][...]
-        
+            normalization[atom] = [y_mean, y_std]
+
 
     # ## cal force ## #
     def cal_force(discriptors):
@@ -119,20 +90,19 @@ def main():
 
         discriptor, rot_matrices = discriptor_generator._descriptor(discriptors)
 
-        forces = []
+        forces = np.zeros((N_ATOMS, 3))
         for atom in MAINCHAIN:
-            i, j = slice_indeces[atom]
-            forces.append( model[atom].predict(discriptor[i:j]) )
-        forces = np.concatenate(forces)
-        
+            i, j = SLICE_INDECES[atom]
+            force = model[atom].predict(discriptor[i:j])
+            y_mean, y_std = normalization[atom]
+            force = np.add(np.multiply(force, y_std), y_mean)
+            forces[i:j] = force
+
         # rotate
         forces = np.array([np.dot(force, np.linalg.inv(rot_matrix)) for force, rot_matrix in zip(forces, rot_matrices)])
-        
-        # expand scale
-        forces = np.add(np.multiply(forces, y_std), y_mean)
-        
+
         return forces
-    
+
 
     # ## leap frog ## #
     weights = np.array([MASS[atom] for atom in ATOM_ALIGN]).reshape(-1, 1)
@@ -140,15 +110,25 @@ def main():
     def leap_frog(struct1, struct2):
         return np.subtract(2*struct2, struct1) + np.divide(cal_force(struct2), weights) * (DT**2)
 
-    
     # ## simulate ## #
     trj = np.zeros((args.len, N_ATOMS, 3))
     trj[0:2] = init_structs
 
     for t in range(2, args.len):
         trj[t] = leap_frog(trj[t-2], trj[t-1])
+        print('\r', t+1, '/', args.len, end="")
+    print()
 
-    np.save(OUTPATH, trj)
+    trj = trj[:, REARRANGED_INDECES, :]
+
+
+    # ## output ## #
+    outnpy = os.path.join(OUTDIR, "trj.npy")
+    np.save(outnpy, trj)
+
+    outamber = os.path.join(OUTDIR, "trj.amber")
+    np.savetxt(outamber, trj.reshape(-1, 3), delimiter=' ', header='header')
+
 
 if __name__ == '__main__':
     main()

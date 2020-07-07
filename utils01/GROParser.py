@@ -5,13 +5,13 @@ MAINCHAIN = ['N', 'CA', 'C', 'O']
 
 
 class GROParser:
-    def __init__(self, grofile_path):
-        self.fp = grofile_path
+    def __init__(self, grofile_path, cutoff_radius):
         self.mainchains = MAINCHAIN
 
+        # ## load gro file ## #
         self.atom_align = []
         self.struct = []
-        with open(self.fp) as f:
+        with open(grofile_path) as f:
             f.readline()
             f.readline()
             for line in f:
@@ -24,17 +24,20 @@ class GROParser:
 
         self.struct = np.array(self.struct)
 
-        # n atoms
+        #  ## n atoms ## #
         self.n_atoms = len(self.atom_align)
 
-        # each atom indeces
+        # ## each atom indeces ## #
         self.eachatom_indeces = {}
         for atom in MAINCHAIN:
             self.eachatom_indeces[atom] = [i for i in range(self.n_atoms) if self.atom_align[i] == atom]
-        
         self.each_n_atoms = {atom: len(indeces) for atom, indeces in self.eachatom_indeces.items()}
 
-    def cal_adjacent(self, cutoff_radius):
+        self._cal_adjacent(cutoff_radius)
+
+        self._arrange_order()
+
+    def _cal_adjacent(self, cutoff_radius):
         # define indeces
         adjacent_indeces = []  # adjacent_indeces[0] = [back-chains, front-chains, floatN, floatCA, floatC, floatO]
         ab_indeces = []  # [index_a, index_b]
@@ -101,4 +104,50 @@ class GROParser:
             # append
             adjacent_indeces.append([backchain_indeces, frontchain_indeces] + float_indeces)
 
-        return adjacent_indeces, ab_indeces, max_n_adjacent
+        self.adjacent_indeces = adjacent_indeces
+        self.ab_indeces = ab_indeces
+        self.max_n_adjacent = max_n_adjacent
+
+    def _arrange_order(self):
+        arranged_indeces = []
+        for atom in self.mainchains:
+            arranged_indeces.extend(self.eachatom_indeces[atom])
+
+        self.struct = self.struct[arranged_indeces, :]
+        self.arranged_indeces = arranged_indeces
+
+        self.rearranged_indeces = np.argsort(arranged_indeces).tolist()
+
+        i = 0
+        ATOM_ALIGN = []
+        slice_indeces = {}
+        for atom in self.mainchains:
+            j = i+len(self.eachatom_indeces[atom])
+            slice_indeces[atom] = [i, j]
+            ATOM_ALIGN = ATOM_ALIGN + [atom] * (j-i)
+            i = j
+
+        self.atom_align = ATOM_ALIGN
+        self.slice_indeces = slice_indeces
+
+        self.eachatom_indeces = {atom: list(range(i, j)) for atom, [i, j] in slice_indeces.items()}
+
+        index_convert_dict = {orig_index: new_index for new_index, orig_index in enumerate(arranged_indeces)}
+        self.index_convert_dict = index_convert_dict
+
+        ADJACENT_INDECES = self.adjacent_indeces
+        for i in range(len(ADJACENT_INDECES)):
+            for j in range(len(ADJACENT_INDECES[i])):
+                for k in range(len(ADJACENT_INDECES[i][j])):
+                    ADJACENT_INDECES[i][j][k] = index_convert_dict[ADJACENT_INDECES[i][j][k]]
+
+        AB_INDECES = self.ab_indeces
+        for i in range(len(AB_INDECES)):
+            for j in range(len(AB_INDECES[i])):
+                AB_INDECES[i][j] = index_convert_dict[AB_INDECES[i][j]]
+
+        self.adjacent_indeces = []
+        self.ab_indeces = []
+        for i in self.arranged_indeces:
+            self.adjacent_indeces.append(ADJACENT_INDECES[i])
+            self.ab_indeces.append(AB_INDECES[i])

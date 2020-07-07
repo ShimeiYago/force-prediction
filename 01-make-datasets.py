@@ -42,9 +42,28 @@ def main():
     if not args.f:
         check_output(args.o)
 
+    # ## parse gro file ## #
+    print('--- Reading gro file ---')
+    groparser = GROParser(args.gro, CUTOFF_RADIUS)
+    MAINCHAIN = groparser.mainchains
+    N_ATOMS = groparser.n_atoms
+    EACH_N_ATOMS = groparser.each_n_atoms
+    SLICE_INDECES = groparser.slice_indeces
+    ARRANGED_INDECES = groparser.arranged_indeces
+    ADJACENT_INDECES = groparser.adjacent_indeces
+    AB_INDECES = groparser.ab_indeces
+    MAX_N_ADJACENT = groparser.max_n_adjacent
+
+    # print target atoms
+    print('Traget Atoms:', end="")
+    for atom in MAINCHAIN:
+        print(f' {atom}({EACH_N_ATOMS[atom]})', end=",")
+    print()
+
+
     # ## read data ## #
-    print('--- Reading files ---')
-    readxvgs = ReadXVGs(args.init_time, args.maxlen)
+    print('--- Reading trajectory ---')
+    readxvgs = ReadXVGs(args.init_time, args.maxlen, ARRANGED_INDECES)
     train_coords, train_forces = readxvgs(args.inputs)
 
     # val data
@@ -64,22 +83,6 @@ def main():
         batchsize = train_coords.shape[0] // 30
 
 
-    # ## parse gro file ## #
-    groparser = GROParser(args.gro)
-    ATOM_ALIGN = groparser.atom_align
-    MAINCHAIN = groparser.mainchains
-    N_ATOMS = groparser.n_atoms
-    EACH_N_ATOMS = groparser.each_n_atoms
-    EACHATOM_INDECES = groparser.eachatom_indeces
-    ADJACENT_INDECES, AB_INDECES, MAX_N_ADJACENT = groparser.cal_adjacent(CUTOFF_RADIUS)
-
-    # print target atoms
-    print('Traget Atoms:', end="")
-    for atom in MAINCHAIN:
-        print(f' {atom}({EACH_N_ATOMS[atom]})', end=",")
-    print()
-
-
     # ## make descriptor ## #
     os.makedirs(OUTDIR, exist_ok=True)
 
@@ -91,7 +94,7 @@ def main():
     # instance
     discriptor_generator = DiscriptorGenerator(
         args.o, batchsize,
-        MAINCHAIN, ATOM_ALIGN, N_ATOMS, EACH_N_ATOMS, EACHATOM_INDECES,
+        MAINCHAIN, N_ATOMS, EACH_N_ATOMS, SLICE_INDECES,
         ADJACENT_INDECES, AB_INDECES, MAX_N_ADJACENT,
         EXPLANATORY_NAME, RESPONSE_NAME)
 

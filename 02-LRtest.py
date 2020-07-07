@@ -37,9 +37,10 @@ def main():
     args = parser.parse_args()
 
     # ## path ## #
+    outdir = os.path.join(OUTDIR, args.atom)
     keyword = os.path.splitext(os.path.basename(args.input))[0] + f'-{args.atom}-model{args.model:02d}'
-    os.makedirs(OUTDIR, exist_ok=True)
-    history_path = os.path.join(OUTDIR, f'{keyword}.csv')
+    os.makedirs(outdir, exist_ok=True)
+    history_path = os.path.join(outdir, f'{keyword}.csv')
 
     # ## callback ## #
     # CSVLogger

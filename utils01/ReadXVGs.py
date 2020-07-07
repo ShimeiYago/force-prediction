@@ -1,12 +1,14 @@
 import dask.array as da
 import dask.dataframe as ddf
 import sys
+import numpy as np
 
 
 class ReadXVGs:
-    def __init__(self, init_time: int, maxlen: int):
+    def __init__(self, init_time: int, maxlen: int, arranged_indeces: list):
         self.init_time = init_time
         self.maxlen = maxlen
+        self.arranged_indeces = arranged_indeces
 
     def __call__(self, fplist: list):
         coords_list, forces_list = [], []
@@ -23,6 +25,10 @@ class ReadXVGs:
         # concatenate
         coords = da.concatenate(coords_list, 0)
         forces = da.concatenate(forces_list, 0)
+
+        # arrange order
+        coords = coords[:, self.arranged_indeces, :]
+        forces = forces[:, self.arranged_indeces, :]
 
         return coords, forces
 

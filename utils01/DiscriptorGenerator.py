@@ -7,7 +7,7 @@ import time
 
 class DiscriptorGenerator:
     def __init__(self, outpath, batchsize,
-                 mainchain, atom_align, n_atoms, each_n_atoms, eachatom_indeces,
+                 mainchain, n_atoms, each_n_atoms, slice_indeces,
                  adjacent_indeces, ab_indeces, max_n_adjacent,
                  EXPLANATORY_NAME, RESPONSE_NAME):
 
@@ -15,10 +15,9 @@ class DiscriptorGenerator:
         self.BATCHSIZE = batchsize
 
         self.MAINCHAIN = mainchain
-        self.ATOM_ALIGN = atom_align
         self.N_ATOMS = n_atoms
         self.EACH_N_ATOMS = each_n_atoms
-        self.EACHATOM_INDECES = eachatom_indeces
+        self.SLICE_INDECES = slice_indeces
         self.AB_INDECES = ab_indeces
 
         self.ADJACENT_INDECES = self._rewrite_indeces(adjacent_indeces, max_n_adjacent)
@@ -103,7 +102,7 @@ class DiscriptorGenerator:
             discriptors = np.array([r[0] for r in results])
             rot_matrices = np.array([r[1] for r in results])
 
-            # rotae force
+            # rotate force
             forces = forces.reshape(-1, 3)
             forces = np.array([np.dot(force, rot_matrix) for force, rot_matrix in zip(forces, rot_matrices.reshape(-1, 3, 3))])
             forces = forces.reshape(part_length, self.N_ATOMS, 3)
@@ -111,14 +110,15 @@ class DiscriptorGenerator:
             # save to hdf5
             with h5py.File(self.OUTPATH, mode='r+') as f:
                 for atom in self.MAINCHAIN:
-                    indeces = self.EACHATOM_INDECES[atom]
+                    atom_indeces_l, atom_indeces_u = self.SLICE_INDECES[atom]
+                    # indeces = self.SLICE_INDECES[atom]
                     ll = l * self.EACH_N_ATOMS[atom]
                     uu = u * self.EACH_N_ATOMS[atom]
 
                     X = f[f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}']
                     Y = f[f'/{atom}/{groupname}/{self.RESPONSE_NAME}']
-                    X[ll:uu] = discriptors[:, indeces, :].reshape(-1, self.INPUTDIM)
-                    Y[ll:uu] = forces[:, indeces, :].reshape(-1, 3)
+                    X[ll:uu] = discriptors[:, atom_indeces_l:atom_indeces_u, :].reshape(-1, self.INPUTDIM)
+                    Y[ll:uu] = forces[:, atom_indeces_l:atom_indeces_u, :].reshape(-1, 3)
 
             # print progress
             elapsed_time = time.time() - start_time

@@ -11,8 +11,8 @@ INPUTDIR03 = "workspace/03-learning"
 
 def main():
     # load 02 data
-    historydict02 = load_history_csv(glob.glob(INPUTDIR02 + '/*.csv'))
-    historydict03 = load_history_csv(glob.glob(INPUTDIR03 + '/*/history.csv'))
+    historydict02 = load_history_csv(glob.glob(INPUTDIR02 + '/*/*.csv'))
+    historydict03 = load_history_csv(glob.glob(INPUTDIR03 + '/*/*/history.csv'))
 
     # plot 02
     for outpath, history in historydict02.items():

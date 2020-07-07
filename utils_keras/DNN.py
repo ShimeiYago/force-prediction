@@ -41,6 +41,8 @@ class DNN:
         model.add(Dense(400, activation='tanh'))
         model.add(Dense(200, activation='tanh'))
         model.add(Dense(100, activation='tanh'))
+        model.add(Dense(100, activation='tanh'))
+        model.add(Dense(100, activation='tanh'))
         model.add(Dense(50, activation='tanh'))
         model.add(Dense(30, activation='tanh'))
         model.add(Dense(10, activation='tanh'))

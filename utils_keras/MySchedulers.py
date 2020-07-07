@@ -6,9 +6,9 @@ class LearningRate_StepDecay:
     def __call__(self, epoch):
         x = self.lr
         if epoch >= self.N_epochs // 2:
-            x = x / 10
+            x = x / 2
         if epoch >= (self.N_epochs // 4 * 3):
-            x = x / 10
+            x = x / 5
         return x
 
 

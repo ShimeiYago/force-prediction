@@ -23,6 +23,8 @@ VAL_NAME = "validation"
 EXPLANATORY_NAME = "x"
 RESPONSE_NAME = "y"
 
+MAINCHAIN = ['N', 'CA', 'C', 'O']
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -39,12 +41,22 @@ def main():
     parser.add_argument('--on_memory', action='store_true', help='rapidly but use much memory')
 
     parser.add_argument('-a', '--atom', type=str, required=True,
-                        help='designate atom species name ("CA", "N", "C", etc.)')
+                        help='designate atom species name ("all", "CA", "N", "C", etc.)')
     args = parser.parse_args()
 
+    if args.atom == 'all':
+        for atom in MAINCHAIN:
+            print(f'---------- {atom} ----------')
+            learning(args, atom)
+    else:
+        learning(args, args.atom)
+
+
+def learning(args, atom):
     # ## path ## #
-    os.makedirs(OUTDIR, exist_ok=True)
-    outdir = decide_outdir()
+    outdir = os.path.join(OUTDIR, atom)
+    os.makedirs(outdir, exist_ok=True)
+    outdir = decide_outdir(outdir)
     os.makedirs(outdir, exist_ok=True)
     history_path = os.path.join(outdir, 'history.csv')
 
@@ -68,10 +80,10 @@ def main():
     # ## learning ## #
     with h5py.File(args.input, mode='r') as f:
         # prepare data
-        X_train = f[f'/{args.atom}/{TRAIN_NAME}/{EXPLANATORY_NAME}']
-        Y_train = f[f'/{args.atom}/{TRAIN_NAME}/{RESPONSE_NAME}']
-        X_val = f[f'/{args.atom}/{VAL_NAME}/{EXPLANATORY_NAME}']
-        Y_val = f[f'/{args.atom}/{VAL_NAME}/{RESPONSE_NAME}']
+        X_train = f[f'/{atom}/{TRAIN_NAME}/{EXPLANATORY_NAME}']
+        Y_train = f[f'/{atom}/{TRAIN_NAME}/{RESPONSE_NAME}']
+        X_val = f[f'/{atom}/{VAL_NAME}/{EXPLANATORY_NAME}']
+        Y_val = f[f'/{atom}/{VAL_NAME}/{RESPONSE_NAME}']
 
         N_datasets_train = X_train.shape[0]
         N_datasets_val = X_val.shape[0]
@@ -114,11 +126,11 @@ def main():
             verbose=2)
 
 
-def decide_outdir():
+def decide_outdir(outdir):
     for i in range(100):
-        if f'{EACH_OUDIR_KEY}{i:0=3}' in os.listdir(OUTDIR):
+        if f'{EACH_OUDIR_KEY}{i:0=3}' in os.listdir(outdir):
             continue
-        return os.path.join(OUTDIR, f'{EACH_OUDIR_KEY}{i:0=3}')
+        return os.path.join(outdir, f'{EACH_OUDIR_KEY}{i:0=3}')
 
 
 def save_options(args, fp):
