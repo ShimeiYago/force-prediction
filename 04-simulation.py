@@ -11,8 +11,6 @@ from utils01 import DiscriptorGenerator
 
 from utils_keras import DNN
 
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
-
 
 DATASETDIR = "workspace/01-make-datasets"
 CUTOFF_RADIUS = 1.0
