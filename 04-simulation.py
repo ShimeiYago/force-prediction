@@ -75,7 +75,7 @@ def main():
 
     # ## normalization values ## #
     normalization = {}
-    with h5py.File("workspace/01-make-datasets/datasets.hdf5", mode='r') as f:
+    with h5py.File(args.dataset, mode='r') as f:
         for atom in MAINCHAIN:
             y_mean, y_std = f[f'/{atom}/normalization'][...]
             normalization[atom] = [y_mean, y_std]
