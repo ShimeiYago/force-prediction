@@ -1,17 +1,17 @@
 import numpy as np
 
 MASS = {'CA': 12.01100, 'C': 12.01100, 'O': 15.99900, 'N': 14.00700}
-K = 1  # spring constant
 DT = 0.002
 
 
 class LeapFrog:
-    def __init__(self, discriptor_generator, model, normalization,
+    def __init__(self, discriptor_generator, model, normalization, k,
                  N_ATOMS, MAINCHAIN, SLICE_INDECES, ATOM_ALIGN,
                  CONNECT_INDECES, INIT_RADIUSES):
         self.discriptor_generator = discriptor_generator
         self.model = model
         self.normalization = normalization
+        self.k = k  # spring constant
         self.N_ATOMS = N_ATOMS
         self.MAINCHAIN = MAINCHAIN
         self.SLICE_INDECES = SLICE_INDECES
@@ -52,5 +52,5 @@ class LeapFrog:
         Ls = self.INIT_RADIUSES[i][self.CONNECT_INDECES[i]].reshape(-1, 1)
         rs = np.linalg.norm(r_vecs, axis=1, ord=2).reshape(-1, 1)
 
-        forces = np.multiply(r_vecs, K*(1-Ls/rs))
+        forces = np.multiply(r_vecs, self.k*(1-Ls/rs))
         return np.sum(forces, axis=0)

@@ -32,6 +32,7 @@ def main():
 
     parser.add_argument('--len', type=int, default=5000, help='simulation length')
     parser.add_argument('-o', type=str, default="trj", help='output name')
+    parser.add_argument('-k', type=float, default=1, help='spring constant')
     args = parser.parse_args()
 
     os.makedirs(OUTDIR, exist_ok=True)
@@ -81,7 +82,7 @@ def main():
 
 
     # ## simulate ## #
-    leapfrog = LeapFrog(discriptor_generator, models, normalization,
+    leapfrog = LeapFrog(discriptor_generator, models, normalization, args.k,
                         N_ATOMS, MAINCHAIN, SLICE_INDECES, ATOM_ALIGN,
                         CONNECT_INDECES, INIT_RADIUSES)
 
