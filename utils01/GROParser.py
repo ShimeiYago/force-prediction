@@ -42,22 +42,35 @@ class GROParser:
         adjacent_indeces = []  # adjacent_indeces[0] = [back-chains, front-chains, floatN, floatCA, floatC, floatO]
         ab_indeces = []  # [index_a, index_b]
         max_n_adjacent = [0, 0, 0, 0, 0, 0]
+        connects_indeces = []
+        self.init_radiuses = []
         for i in range(self.n_atoms):
             radiuses = np.linalg.norm(np.subtract(self.struct, self.struct[i]), axis=1, ord=2)
+            self.init_radiuses.append(radiuses)
 
             backchain_indeces = list(range(0, i))[::-1]
             frontchain_indeces = list(range(i+1, self.n_atoms))
 
-            # define a, b
+            # define a, b, and connects
             atom = self.atom_align[i]
             if atom == 'N':
                 index_a, index_b = frontchain_indeces[0:2]
+                if len(backchain_indeces) > 0:
+                    connects_indeces.append([backchain_indeces[1], frontchain_indeces[0]])
+                else:
+                    connects_indeces.append([frontchain_indeces[0]])
             elif atom == 'CA':
                 index_a, index_b = backchain_indeces[0], frontchain_indeces[0]
+                connects_indeces.append([backchain_indeces[0], frontchain_indeces[0]])
             elif atom == 'C':
                 index_a, index_b = backchain_indeces[0:2]
+                if len(frontchain_indeces) > 0:
+                    connects_indeces.append([backchain_indeces[0], frontchain_indeces[0], frontchain_indeces[1]])
+                else:
+                    connects_indeces.append([backchain_indeces[0]])
             elif atom == 'O':
                 index_a, index_b = backchain_indeces[0:2]
+                connects_indeces.append([backchain_indeces[0]])
             ab_indeces.append([index_a, index_b])
 
             # cut back indeces
@@ -107,6 +120,8 @@ class GROParser:
         self.adjacent_indeces = adjacent_indeces
         self.ab_indeces = ab_indeces
         self.max_n_adjacent = max_n_adjacent
+        self.connects_indeces = connects_indeces
+        self.init_radiuses = np.array(self.init_radiuses)
 
     def _arrange_order(self):
         arranged_indeces = []
@@ -146,8 +161,16 @@ class GROParser:
             for j in range(len(AB_INDECES[i])):
                 AB_INDECES[i][j] = index_convert_dict[AB_INDECES[i][j]]
 
+        CONNECT_INDECES = self.connects_indeces
+        for i in range(len(CONNECT_INDECES)):
+            for j in range(len(CONNECT_INDECES[i])):
+                CONNECT_INDECES[i][j] = index_convert_dict[CONNECT_INDECES[i][j]]
+
+
         self.adjacent_indeces = []
         self.ab_indeces = []
+        self.connects_indeces = []
         for i in self.arranged_indeces:
             self.adjacent_indeces.append(ADJACENT_INDECES[i])
             self.ab_indeces.append(AB_INDECES[i])
+            self.connects_indeces.append(CONNECT_INDECES[i])

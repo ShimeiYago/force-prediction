@@ -8,14 +8,13 @@ import numpy as np
 from utils01 import ReadXVGs
 from utils01 import GROParser
 from utils01 import DiscriptorGenerator
+from utils04 import LeapFrog
 
 from utils_keras import DNN
 
 
 DATASETDIR = "workspace/01-make-datasets"
 CUTOFF_RADIUS = 1.0
-MASS = {'CA': 12.01100, 'C': 12.01100, 'O': 15.99900, 'N': 14.00700}
-DT = 0.002
 OUTDIR = "workspace/04-simulate"
 
 
@@ -32,6 +31,7 @@ def main():
     parser.add_argument('--weights', type=str, nargs=4, required=True, help='model weights (N, CA, C, O)')
 
     parser.add_argument('--len', type=int, default=5000, help='simulation length')
+    parser.add_argument('-o', type=str, default="trj", help='output name')
     args = parser.parse_args()
 
     os.makedirs(OUTDIR, exist_ok=True)
@@ -48,6 +48,8 @@ def main():
     AB_INDECES = groparser.ab_indeces
     MAX_N_ADJACENT = groparser.max_n_adjacent
     ATOM_ALIGN = groparser.atom_align
+    CONNECT_INDECES = groparser.connects_indeces
+    INIT_RADIUSES = groparser.init_radiuses
 
     # ## init strcuct ## #
     init_structs = ReadXVGs(None, None, ARRANGED_INDECES)._read_xvg(args.coords)[args.init_time:args.init_time+2].compute()
@@ -62,16 +64,13 @@ def main():
 
     # ## read models ## #
     dnn = DNN(discriptor_generator.INPUTDIM, None)
-    Nmodel = dnn(args.model)
-    Nmodel.load_weights(args.weights[0])
-    CAmodel = dnn(args.model)
-    CAmodel.load_weights(args.weights[1])
-    Cmodel = dnn(args.model)
-    Cmodel.load_weights(args.weights[2])
-    Omodel = dnn(args.model)
-    Omodel.load_weights(args.weights[3])
-    model = {'N': Nmodel, 'CA': CAmodel, 'C': Cmodel, 'O':Omodel}
-
+    models = {}
+    for fp in args.weights:
+        for atom in MAINCHAIN:
+            if f'/{atom}/' in fp:
+                model = dnn(args.model)
+                model.load_weights(fp)
+                models[atom] = model
 
     # ## normalization values ## #
     normalization = {}
@@ -81,51 +80,28 @@ def main():
             normalization[atom] = [y_mean, y_std]
 
 
-    # ## cal force ## #
-    def cal_force(discriptors):
-        discriptors = np.tile(discriptors, (N_ATOMS, 1)).reshape(N_ATOMS, -1, 3)
-        discriptors = discriptors - discriptors.transpose(1, 0, 2)
-
-        discriptor, rot_matrices = discriptor_generator._descriptor(discriptors)
-
-        forces = np.zeros((N_ATOMS, 3))
-        for atom in MAINCHAIN:
-            i, j = SLICE_INDECES[atom]
-            force = model[atom].predict(discriptor[i:j])
-            y_mean, y_std = normalization[atom]
-            force = np.add(np.multiply(force, y_std), y_mean)
-            forces[i:j] = force
-
-        # rotate
-        forces = np.array([np.dot(force, np.linalg.inv(rot_matrix)) for force, rot_matrix in zip(forces, rot_matrices)])
-
-        return forces
-
-
-    # ## leap frog ## #
-    weights = np.array([MASS[atom] for atom in ATOM_ALIGN]).reshape(-1, 1)
-
-    def leap_frog(struct1, struct2):
-        return np.subtract(2*struct2, struct1) + np.divide(cal_force(struct2), weights) * (DT**2)
-
     # ## simulate ## #
+    leapfrog = LeapFrog(discriptor_generator, models, normalization,
+                        N_ATOMS, MAINCHAIN, SLICE_INDECES, ATOM_ALIGN,
+                        CONNECT_INDECES, INIT_RADIUSES)
+
     trj = np.zeros((args.len, N_ATOMS, 3))
     trj[0:2] = init_structs
 
-    for t in range(2, args.len):
-        trj[t] = leap_frog(trj[t-2], trj[t-1])
-        print('\r', t+1, '/', args.len, end="")
+    for t in range(1, args.len-1):
+        trj[t+1] = leapfrog(trj[t-1], trj[t])
+        print('\r', t+2, '/', args.len, end="")
     print()
 
     trj = trj[:, REARRANGED_INDECES, :]
 
 
     # ## output ## #
-    outnpy = os.path.join(OUTDIR, "trj.npy")
+    outnpy = os.path.join(OUTDIR, f"{args.o}.npy")
     np.save(outnpy, trj)
 
-    outamber = os.path.join(OUTDIR, "trj.amber")
-    np.savetxt(outamber, trj.reshape(-1, 3), delimiter=' ', header='header')
+    outamber = os.path.join(OUTDIR, f"{args.o}.amber")
+    np.savetxt(outamber, np.multiply(trj, 10).reshape(-1, 3), delimiter=' ', header='header')
 
 
 if __name__ == '__main__':
