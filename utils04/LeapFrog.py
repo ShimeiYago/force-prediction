@@ -20,14 +20,15 @@ class LeapFrog:
         self.CONNECT_INDECES = CONNECT_INDECES
         self.INIT_RADIUSES = INIT_RADIUSES
 
+        self.weights = np.array([MASS[atom] for atom in ATOM_ALIGN])
+
         init_veloc = np.subtract(init_struct[1], init_struct[0]) / DT
         self.T2 = self._cal_KE2(init_veloc)
 
-        self.weights = np.array([MASS[atom] for atom in ATOM_ALIGN]).reshape(-1, 1)
-
     def __call__(self, pre_struct, current_struct):
-        veloc = np.subtract(current_struct, pre_struct) / DT + np.divide(self._cal_force(current_struct), self.weights) * DT
-        return np.subtract(2*current_struct, pre_struct) + veloc * DT
+        veloc = np.subtract(current_struct, pre_struct) / DT + np.divide(self._cal_force(current_struct), self.weights.reshape(-1, 1)) * DT
+        alpha = self._cal_alpha(veloc)
+        return np.add(current_struct, np.multiply(veloc, DT * alpha))
 
     def _cal_force(self, discriptors):
         discriptors = np.tile(discriptors, (self.N_ATOMS, 1)).reshape(self.N_ATOMS, -1, 3)
@@ -61,4 +62,10 @@ class LeapFrog:
         return np.sum(forces, axis=0)
 
     def _cal_KE2(self, veloc):
-        return np.sum(np.square(veloc), axis=1)
+        veloc_square = np.sum(np.square(veloc), axis=1)
+        KE2 = np.sum(np.multiply(veloc_square, self.weights), axis=0)
+        return KE2
+
+    def _cal_alpha(self, veloc):
+        alpha = np.sqrt(self.T2 / self._cal_KE2(veloc))
+        return alpha
