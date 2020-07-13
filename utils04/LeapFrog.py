@@ -7,7 +7,8 @@ DT = 0.002
 class LeapFrog:
     def __init__(self, discriptor_generator, model, normalization, k,
                  N_ATOMS, MAINCHAIN, SLICE_INDECES, ATOM_ALIGN,
-                 CONNECT_INDECES, INIT_RADIUSES):
+                 CONNECT_INDECES, INIT_RADIUSES,
+                 init_struct):
         self.discriptor_generator = discriptor_generator
         self.model = model
         self.normalization = normalization
@@ -19,10 +20,14 @@ class LeapFrog:
         self.CONNECT_INDECES = CONNECT_INDECES
         self.INIT_RADIUSES = INIT_RADIUSES
 
+        init_veloc = np.subtract(init_struct[1], init_struct[0]) / DT
+        self.T2 = self._cal_KE2(init_veloc)
+
         self.weights = np.array([MASS[atom] for atom in ATOM_ALIGN]).reshape(-1, 1)
 
     def __call__(self, pre_struct, current_struct):
-        return np.subtract(2*current_struct, pre_struct) + np.divide(self._cal_force(current_struct), self.weights) * (DT**2)
+        veloc = np.subtract(current_struct, pre_struct) / DT + np.divide(self._cal_force(current_struct), self.weights) * DT
+        return np.subtract(2*current_struct, pre_struct) + veloc * DT
 
     def _cal_force(self, discriptors):
         discriptors = np.tile(discriptors, (self.N_ATOMS, 1)).reshape(self.N_ATOMS, -1, 3)
@@ -39,11 +44,11 @@ class LeapFrog:
             force = np.add(np.multiply(force, y_std), y_mean)
             forces[i:j] = force
 
-        # cal force of spring
-        spring_forces = np.array([self._cal_spring_force(i, r_vecs) for i, r_vecs in enumerate(discriptors)])
-
         # rotate
         forces = np.array([np.dot(force, np.linalg.inv(rot_matrix)) for force, rot_matrix in zip(forces, rot_matrices)])
+
+        # cal force of spring
+        spring_forces = np.array([self._cal_spring_force(i, r_vecs) for i, r_vecs in enumerate(discriptors)])
 
         return np.add(forces, spring_forces)
 
@@ -54,3 +59,6 @@ class LeapFrog:
 
         forces = np.multiply(r_vecs, self.k*(1-Ls/rs))
         return np.sum(forces, axis=0)
+
+    def _cal_KE2(self, veloc):
+        return np.sum(np.square(veloc), axis=1)

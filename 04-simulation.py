@@ -84,7 +84,8 @@ def main():
     # ## simulate ## #
     leapfrog = LeapFrog(discriptor_generator, models, normalization, args.k,
                         N_ATOMS, MAINCHAIN, SLICE_INDECES, ATOM_ALIGN,
-                        CONNECT_INDECES, INIT_RADIUSES)
+                        CONNECT_INDECES, INIT_RADIUSES,
+                        init_structs)
 
     trj = np.zeros((args.len, N_ATOMS, 3))
     trj[0:2] = init_structs
