@@ -52,7 +52,7 @@ def main():
     ARRANGED_INDECES = groparser.arranged_indeces
     ADJACENT_INDECES = groparser.adjacent_indeces
     AB_INDECES = groparser.ab_indeces
-    MAX_N_ADJACENT = groparser.max_n_adjacent
+    ATOM_ALIGN = groparser.atom_align
 
     # print target atoms
     print('Traget Atoms:', end="")
@@ -95,8 +95,13 @@ def main():
     discriptor_generator = DiscriptorGenerator(
         args.o, batchsize,
         MAINCHAIN, N_ATOMS, EACH_N_ATOMS, SLICE_INDECES,
-        ADJACENT_INDECES, AB_INDECES, MAX_N_ADJACENT,
+        ADJACENT_INDECES, AB_INDECES, ATOM_ALIGN,
         EXPLANATORY_NAME, RESPONSE_NAME)
+    
+    # input dims
+    print('--- Inout dimensions ---')
+    for atom in MAINCHAIN:
+        print("[{}] {}".format(atom, discriptor_generator.INPUTDIMS[atom]))
 
     # process train data
     print('--- Process Training data ---')

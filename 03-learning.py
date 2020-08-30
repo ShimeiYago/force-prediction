@@ -40,11 +40,11 @@ def main():
 
     parser.add_argument('--on_memory', action='store_true', help='rapidly but use much memory')
 
-    parser.add_argument('-a', '--atom', type=str, required=True,
-                        help='designate atom species name ("all", "CA", "N", "C", etc.)')
+    parser.add_argument('-a', '--atom', type=str,
+                        help='designate atom species name ("CA", "N", "C", "O")')
     args = parser.parse_args()
 
-    if args.atom == 'all':
+    if not args.atom:
         for atom in MAINCHAIN:
             print(f'---------- {atom} ----------')
             learning(args, atom)
@@ -137,12 +137,10 @@ def save_options(args, fp):
     with open(fp, mode='w') as f:
         f.write(
             f'input file:\t{args.input}'
-            f'\ntarget Atom:\t{args.atom}'
             f'\nepochs:\t{args.epochs}'
             f'\ninit lr:\t{args.lr}'
             f'\nbatch:\t{args.batch}'
-            f'\nmodel number:\t{args.model}'
-            f'\ntake over:\t"{args.weight}"')
+            f'\nmodel number:\t{args.model}')
 
 
 if __name__ == '__main__':

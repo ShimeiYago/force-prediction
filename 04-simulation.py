@@ -20,7 +20,7 @@ OUTDIR = "workspace/04-simulate"
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--coords', type=str, help='coord file (.xvg)')
+    parser.add_argument('--coord', type=str, help='coord file (.xvg)')
     parser.add_argument('--init_time', type=int, default=0, help='init time to start simulation')
     parser.add_argument('--gro', type=str, help='specify .gro path if want to include amino infomation into datasets')
     parser.add_argument('--dataset', type=str,
@@ -44,31 +44,32 @@ def main():
     EACH_N_ATOMS = groparser.each_n_atoms
     SLICE_INDECES = groparser.slice_indeces
     ARRANGED_INDECES = groparser.arranged_indeces
-    REARRANGED_INDECES = groparser.rearranged_indeces
     ADJACENT_INDECES = groparser.adjacent_indeces
     AB_INDECES = groparser.ab_indeces
-    MAX_N_ADJACENT = groparser.max_n_adjacent
     ATOM_ALIGN = groparser.atom_align
     CONNECT_INDECES = groparser.connects_indeces
     INIT_RADIUSES = groparser.init_radiuses
 
     # ## init strcuct ## #
-    init_structs = ReadXVGs(None, None, ARRANGED_INDECES)._read_xvg(args.coords)[args.init_time:args.init_time+2].compute()
+    init_structs = ReadXVGs(None, None, ARRANGED_INDECES)._read_xvg(args.coord)[args.init_time:args.init_time+2].compute()
     init_structs = init_structs[:, ARRANGED_INDECES, :]
 
     # ## discriptor generator ## #
     discriptor_generator = DiscriptorGenerator(
         None, None,
         MAINCHAIN, N_ATOMS, EACH_N_ATOMS, SLICE_INDECES,
-        ADJACENT_INDECES, AB_INDECES, MAX_N_ADJACENT,
+        ADJACENT_INDECES, AB_INDECES, ATOM_ALIGN,
         None, None)
 
     # ## read models ## #
-    dnn = DNN(discriptor_generator.INPUTDIM, None)
+    inputdims = discriptor_generator.INPUTDIMS
     models = {}
     for fp in args.weights:
         for atom in MAINCHAIN:
             if f'/{atom}/' in fp:
+                dnn = DNN(inputdims[atom], None)
+                model = dnn(args.model)
+                dnn = DNN(inputdims[atom], None)
                 model = dnn(args.model)
                 model.load_weights(fp)
                 models[atom] = model
@@ -84,7 +85,7 @@ def main():
     # ## simulate ## #
     leapfrog = LeapFrog(discriptor_generator, models, normalization, args.k,
                         N_ATOMS, MAINCHAIN, SLICE_INDECES, ATOM_ALIGN,
-                        CONNECT_INDECES, INIT_RADIUSES,
+                        CONNECT_INDECES, INIT_RADIUSES, inputdims,
                         init_structs)
 
     trj = np.zeros((args.len, N_ATOMS, 3))

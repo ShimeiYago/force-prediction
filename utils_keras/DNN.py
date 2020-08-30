@@ -15,18 +15,16 @@ class DNN:
             return self.model2()
         elif model_number == 3:
             return self.model3()
-        elif model_number == 4:
-            return self.model4()
-
 
     def model1(self):
         model = Sequential()
-        model.add(Dense(400, input_dim=self.input_dim, activation='tanh'))
-        model.add(Dense(200, activation='tanh'))
-        model.add(Dense(100, activation='tanh'))
-        model.add(Dense(50, activation='tanh'))
-        model.add(Dense(30, activation='tanh'))
-        model.add(Dense(10, activation='tanh'))
+        model.add(Dense(700, input_dim=self.input_dim, activation='tanh'))
+        model.add(Dense(512, activation='tanh'))
+        model.add(Dense(256, activation='tanh'))
+        model.add(Dense(128, activation='tanh'))
+        model.add(Dense(64, activation='tanh'))
+        model.add(Dense(32, activation='tanh'))
+        model.add(Dense(16, activation='tanh'))
         model.add(Dense(3, activation='linear'))
 
         optimizer = optimizers.Adam(learning_rate=self.learning_rate, beta_1=0.9, beta_2=0.999, amsgrad=True)
@@ -36,48 +34,15 @@ class DNN:
 
     def model2(self):
         model = Sequential()
-        model.add(Dense(800, input_dim=self.input_dim, activation='tanh'))
-        model.add(Dense(600, activation='tanh'))
-        model.add(Dense(400, activation='tanh'))
-        model.add(Dense(200, activation='tanh'))
-        model.add(Dense(100, activation='tanh'))
-        model.add(Dense(100, activation='tanh'))
-        model.add(Dense(100, activation='tanh'))
-        model.add(Dense(50, activation='tanh'))
-        model.add(Dense(30, activation='tanh'))
-        model.add(Dense(10, activation='tanh'))
-        model.add(Dense(3, activation='linear'))
-
-        optimizer = optimizers.Adam(learning_rate=self.learning_rate, beta_1=0.9, beta_2=0.999, amsgrad=True)
-        model.compile(optimizer=optimizer, loss='mean_squared_error')
-
-        return model
-
-    def model3(self):
-        model = Sequential()
-        model.add(Dense(800, input_dim=self.input_dim, activation='tanh'))
-        model.add(Dense(600, activation='tanh'))
-        model.add(Dense(400, activation='tanh'))
-        model.add(Dense(200, activation='tanh'))
-        model.add(Dense(100, activation='tanh'))
-        model.add(Dense(100, activation='tanh'))
-        model.add(Dropout(0.5))
-        model.add(Dense(50, activation='tanh'))
-        model.add(Dense(30, activation='tanh'))
-        model.add(Dense(10, activation='tanh'))
-        model.add(Dense(3, activation='linear'))
-
-        optimizer = optimizers.Adam(learning_rate=self.learning_rate, beta_1=0.9, beta_2=0.999, amsgrad=True)
-        model.compile(optimizer=optimizer, loss='mean_squared_error')
-
-        return model
-
-    def model4(self):
-        model = Sequential()
-        model.add(Dense(400, input_dim=self.input_dim, activation='tanh'))
-        model.add(Dense(100, activation='tanh'))
-        model.add(Dense(50, activation='tanh'))
-        model.add(Dense(10, activation='tanh'))
+        model.add(Dense(700, input_dim=self.input_dim, activation='tanh'))
+        model.add(Dense(512, activation='tanh'))
+        model.add(Dense(256, activation='tanh'))
+        model.add(Dense(128, activation='tanh'))
+        model.add(Dense(128, activation='tanh'))
+        model.add(Dense(128, activation='tanh'))
+        model.add(Dense(64, activation='tanh'))
+        model.add(Dense(32, activation='tanh'))
+        model.add(Dense(16, activation='tanh'))
         model.add(Dense(3, activation='linear'))
 
         optimizer = optimizers.Adam(learning_rate=self.learning_rate, beta_1=0.9, beta_2=0.999, amsgrad=True)

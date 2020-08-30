@@ -7,7 +7,7 @@ DT = 0.002
 class LeapFrog:
     def __init__(self, discriptor_generator, model, normalization, k,
                  N_ATOMS, MAINCHAIN, SLICE_INDECES, ATOM_ALIGN,
-                 CONNECT_INDECES, INIT_RADIUSES,
+                 CONNECT_INDECES, INIT_RADIUSES, INPUTDIMS,
                  init_struct):
         self.discriptor_generator = discriptor_generator
         self.model = model
@@ -19,6 +19,7 @@ class LeapFrog:
         self.ATOM_ALIGN = ATOM_ALIGN
         self.CONNECT_INDECES = CONNECT_INDECES
         self.INIT_RADIUSES = INIT_RADIUSES
+        self.INPUTDIMS = INPUTDIMS
 
         self.weights = np.array([MASS[atom] for atom in ATOM_ALIGN])
 
@@ -40,7 +41,8 @@ class LeapFrog:
         forces = np.zeros((self.N_ATOMS, 3))
         for atom in self.MAINCHAIN:
             i, j = self.SLICE_INDECES[atom]
-            force = self.model[atom].predict(discriptor[i:j])
+            inputdim = self.INPUTDIMS[atom]
+            force = self.model[atom].predict(discriptor[i:j, :inputdim])
             y_mean, y_std = self.normalization[atom]
             force = np.add(np.multiply(force, y_std), y_mean)
             forces[i:j] = force

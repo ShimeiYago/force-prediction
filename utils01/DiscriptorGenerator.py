@@ -8,7 +8,7 @@ import time
 class DiscriptorGenerator:
     def __init__(self, outpath, batchsize,
                  mainchain, n_atoms, each_n_atoms, slice_indeces,
-                 adjacent_indeces, ab_indeces, max_n_adjacent,
+                 adjacent_indeces, ab_indeces, atom_align,
                  EXPLANATORY_NAME, RESPONSE_NAME):
 
         self.OUTPATH = outpath
@@ -20,20 +20,32 @@ class DiscriptorGenerator:
         self.SLICE_INDECES = slice_indeces
         self.AB_INDECES = ab_indeces
 
-        self.ADJACENT_INDECES = self._rewrite_indeces(adjacent_indeces, max_n_adjacent)
-        self.INPUTDIM = self.ADJACENT_INDECES.shape[1] * 4
+        self.ADJACENT_INDECES, self.INPUTDIMS = self._rewrite_indeces(adjacent_indeces, atom_align)
 
         self.EXPLANATORY_NAME = EXPLANATORY_NAME
         self.RESPONSE_NAME = RESPONSE_NAME
 
         self.MAX_RECIPROCAL_DADIUS = 10
 
-    def _rewrite_indeces(self, adjacent_indeces, max_n_adjacent):
+    def _rewrite_indeces(self, adjacent_indeces, atom_align):
+        # max_n_adjacent
+        max_n_adjacent = {atom: [] for atom in self.MAINCHAIN}
+        for atom in self.MAINCHAIN:
+            l, u = self.SLICE_INDECES[atom]
+            tmp_adjacent_indeces = [adjacent_indeces[i] for i in range(l, u)]
+            for n in range(6):
+                max_n_adjacent[atom].append(max([len(x[n]) for x in tmp_adjacent_indeces]))
+
+        # inputdim
+        inputdims = {atom: sum(li) * 4 for atom, li in max_n_adjacent.items()}
+        max_inputdim = max([dim for dim in inputdims.values()])
+
         # maxになるように自分自身のindexで埋める
         new_adjacent_indeces = adjacent_indeces
         for i in range(len(adjacent_indeces)):
+            atom = atom_align[i]
             for j in range(len(adjacent_indeces[i])):
-                new_adjacent_indeces[i][j] = adjacent_indeces[i][j] + [i] * (max_n_adjacent[j] - len(adjacent_indeces[i][j]))
+                new_adjacent_indeces[i][j] = adjacent_indeces[i][j] + [i] * (max_n_adjacent[atom][j] - len(adjacent_indeces[i][j]))
 
         # join
         adjacent_indeces = new_adjacent_indeces
@@ -41,10 +53,10 @@ class DiscriptorGenerator:
             adjacent_indeces_i = []
             for j in range(len(adjacent_indeces[i])):
                 adjacent_indeces_i = adjacent_indeces_i + adjacent_indeces[i][j]
-            adjacent_indeces[i] = adjacent_indeces_i
+            adjacent_indeces[i] = adjacent_indeces_i + ([i] * (max_inputdim // 4 - len(adjacent_indeces_i)))
 
         adjacent_indeces = np.array(adjacent_indeces)
-        return adjacent_indeces
+        return adjacent_indeces, inputdims
 
 
     def __call__(self, coords, forces, groupname):
@@ -80,8 +92,10 @@ class DiscriptorGenerator:
         with h5py.File(self.OUTPATH, mode='r+') as f:
             for atom in self.MAINCHAIN:
                 n_datasets = N_frames * self.EACH_N_ATOMS[atom]
+                inputdim = self.INPUTDIMS[atom]
+
                 f.create_dataset(
-                    name=f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}', shape=(n_datasets, self.INPUTDIM),
+                    name=f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}', shape=(n_datasets, inputdim),
                     compression='gzip', dtype=np.float64)
                 f.create_dataset(
                     name=f'/{atom}/{groupname}/{self.RESPONSE_NAME}', shape=(n_datasets, 3),
@@ -111,13 +125,14 @@ class DiscriptorGenerator:
             with h5py.File(self.OUTPATH, mode='r+') as f:
                 for atom in self.MAINCHAIN:
                     atom_indeces_l, atom_indeces_u = self.SLICE_INDECES[atom]
-                    # indeces = self.SLICE_INDECES[atom]
                     ll = l * self.EACH_N_ATOMS[atom]
                     uu = u * self.EACH_N_ATOMS[atom]
 
+                    inputdim = self.INPUTDIMS[atom]
+
                     X = f[f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}']
                     Y = f[f'/{atom}/{groupname}/{self.RESPONSE_NAME}']
-                    X[ll:uu] = discriptors[:, atom_indeces_l:atom_indeces_u, :].reshape(-1, self.INPUTDIM)
+                    X[ll:uu] = discriptors[:, atom_indeces_l:atom_indeces_u, :inputdim].reshape(-1, inputdim)
                     Y[ll:uu] = forces[:, atom_indeces_l:atom_indeces_u, :].reshape(-1, 3)
 
             # print progress
