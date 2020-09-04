@@ -49,6 +49,7 @@ def main():
     ATOM_ALIGN = groparser.atom_align
     CONNECT_INDECES = groparser.connects_indeces
     INIT_RADIUSES = groparser.init_radiuses
+    REARRANGED_INDECES = groparser.rearranged_indeces
 
     # ## init strcuct ## #
     init_structs = ReadXVGs(None, None, ARRANGED_INDECES)._read_xvg(args.coord)[args.init_time:args.init_time+2].compute()
