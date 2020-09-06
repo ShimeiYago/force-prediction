@@ -7,6 +7,7 @@ DT = 0.002
 class LeapFrog:
     def __init__(self, discriptor_generator, model, normalization, k,
                  N_ATOMS, MAINCHAIN, SLICE_INDECES, ATOM_ALIGN,
+                 group_indeces,
                  CONNECT_INDECES, INIT_RADIUSES, INPUTDIMS,
                  init_struct):
         self.discriptor_generator = discriptor_generator
@@ -17,6 +18,7 @@ class LeapFrog:
         self.MAINCHAIN = MAINCHAIN
         self.SLICE_INDECES = SLICE_INDECES
         self.ATOM_ALIGN = ATOM_ALIGN
+        self.GROUP_INDECES = group_indeces
         self.CONNECT_INDECES = CONNECT_INDECES
         self.INIT_RADIUSES = INIT_RADIUSES
         self.INPUTDIMS = INPUTDIMS
@@ -24,12 +26,12 @@ class LeapFrog:
         self.weights = np.array([MASS[atom] for atom in ATOM_ALIGN])
 
         init_veloc = np.subtract(init_struct[1], init_struct[0]) / DT
-        self.T2 = self._cal_KE2(init_veloc)
+        self.T2s = self._cal_KE2(init_veloc)
 
     def __call__(self, pre_struct, current_struct):
         veloc = np.subtract(current_struct, pre_struct) / DT + np.divide(self._cal_force(current_struct), self.weights.reshape(-1, 1)) * DT
-        alpha = self._cal_alpha(veloc)
-        return np.add(current_struct, np.multiply(veloc, DT * alpha))
+        alphas = self._cal_alpha(veloc)
+        return np.add(current_struct, np.multiply(veloc, alphas) * DT)
 
     def _cal_force(self, discriptors):
         discriptors = np.tile(discriptors, (self.N_ATOMS, 1)).reshape(self.N_ATOMS, -1, 3)
@@ -64,10 +66,19 @@ class LeapFrog:
         return np.sum(forces, axis=0)
 
     def _cal_KE2(self, veloc):
+        KE2s = []
         veloc_square = np.sum(np.square(veloc), axis=1)
-        KE2 = np.sum(np.multiply(veloc_square, self.weights), axis=0)
-        return KE2
+        for indeces in self.GROUP_INDECES:
+            KE2 = np.sum(np.multiply(veloc_square, self.weights)[indeces], axis=0)
+            KE2s.append(KE2)
+
+        return KE2s
 
     def _cal_alpha(self, veloc):
-        alpha = np.sqrt(self.T2 / self._cal_KE2(veloc))
-        return alpha
+        alpha_list = [np.sqrt(T2 / KE2) for T2, KE2 in zip(self.T2s, self._cal_KE2(veloc))]
+
+        alphas = np.ones((self.N_ATOMS, 3))
+        for alpha_value, indeces in zip(alpha_list, self.GROUP_INDECES):
+            alphas[indeces] = alpha_value
+
+        return alphas

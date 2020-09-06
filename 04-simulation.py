@@ -17,6 +17,8 @@ DATASETDIR = "workspace/01-make-datasets"
 CUTOFF_RADIUS = 1.0
 OUTDIR = "workspace/04-simulate"
 
+SCALING_GROUP = [[1], [309]]
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -32,7 +34,7 @@ def main():
 
     parser.add_argument('--len', type=int, default=5000, help='simulation length')
     parser.add_argument('-o', type=str, default="trj", help='output name')
-    parser.add_argument('-k', type=float, default=1, help='spring constant')
+    parser.add_argument('-k', type=float, default=0, help='spring constant')
     args = parser.parse_args()
 
     os.makedirs(OUTDIR, exist_ok=True)
@@ -50,6 +52,7 @@ def main():
     CONNECT_INDECES = groparser.connects_indeces
     INIT_RADIUSES = groparser.init_radiuses
     REARRANGED_INDECES = groparser.rearranged_indeces
+    RESID_GROUP_INDECES = groparser.resid_group_indeces
 
     # ## init strcuct ## #
     init_structs = ReadXVGs(None, None, ARRANGED_INDECES)._read_xvg(args.coord)[args.init_time:args.init_time+2].compute()
@@ -82,10 +85,16 @@ def main():
             y_mean, y_std = f[f'/{atom}/normalization'][...]
             normalization[atom] = [y_mean, y_std]
 
+    # resid group indeces
+    group_indeces = []
+    for resid_list in SCALING_GROUP:
+        indeces = sum([RESID_GROUP_INDECES[resid] for resid in resid_list], [])
+        group_indeces.append(indeces)
 
     # ## simulate ## #
     leapfrog = LeapFrog(discriptor_generator, models, normalization, args.k,
                         N_ATOMS, MAINCHAIN, SLICE_INDECES, ATOM_ALIGN,
+                        group_indeces,
                         CONNECT_INDECES, INIT_RADIUSES, inputdims,
                         init_structs)
 

@@ -7,14 +7,26 @@ MAINCHAIN = ['N', 'CA', 'C', 'O']
 class GROParser:
     def __init__(self, grofile_path, cutoff_radius):
         self.mainchains = MAINCHAIN
-
+        self.resid_group_indeces = {}
         # ## load gro file ## #
         self.atom_align = []
         self.struct = []
         with open(grofile_path) as f:
             f.readline()
             f.readline()
-            for line in f:
+            for i, line in enumerate(f):
+                # about resid
+                try:
+                    resid = int(line[0:5])
+                except ValueError:
+                    continue
+
+                if resid not in self.resid_group_indeces:
+                    self.resid_group_indeces[resid] = []
+
+                self.resid_group_indeces[resid].append(i)
+
+                # about atom
                 atom = line[13:15].strip()
                 if atom in self.mainchains:
                     self.atom_align.append(atom)
@@ -166,6 +178,10 @@ class GROParser:
             for j in range(len(CONNECT_INDECES[i])):
                 CONNECT_INDECES[i][j] = index_convert_dict[CONNECT_INDECES[i][j]]
 
+        RESID_GROUP_INDECES = self.resid_group_indeces
+        for k, v in self.resid_group_indeces.items():
+            RESID_GROUP_INDECES[k] = [index_convert_dict[x] for x in v]
+        self.resid_group_indeces = RESID_GROUP_INDECES
 
         self.adjacent_indeces = []
         self.ab_indeces = []
