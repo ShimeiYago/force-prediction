@@ -14,7 +14,19 @@ class GROParser:
         with open(grofile_path) as f:
             f.readline()
             f.readline()
-            for i, line in enumerate(f):
+            i = 0
+            for line in f:
+                # about atom
+                atom = line[13:15].strip()
+                if atom in self.mainchains:
+                    self.atom_align.append(atom)
+
+                    xyz = [float(v) for v in line[23:].split()]
+                    self.struct.append(xyz)
+
+                else:
+                    continue
+
                 # about resid
                 try:
                     resid = int(line[0:5])
@@ -25,14 +37,7 @@ class GROParser:
                     self.resid_group_indeces[resid] = []
 
                 self.resid_group_indeces[resid].append(i)
-
-                # about atom
-                atom = line[13:15].strip()
-                if atom in self.mainchains:
-                    self.atom_align.append(atom)
-
-                    xyz = [float(v) for v in line[23:].split()]
-                    self.struct.append(xyz)
+                i += 1
 
         self.struct = np.array(self.struct)
 
