@@ -17,8 +17,6 @@ DATASETDIR = "workspace/01-make-datasets"
 CUTOFF_RADIUS = 1.0
 OUTDIR = "workspace/04-simulate"
 
-SCALING_GROUP = [[1], [309]]
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -35,6 +33,7 @@ def main():
     parser.add_argument('--len', type=int, default=5000, help='simulation length')
     parser.add_argument('-o', type=str, default="trj", help='output name')
     parser.add_argument('-k', type=float, default=0, help='spring constant')
+    parser.add_argument('--scaling', type=int, action='append', nargs=2, required=True, metavar=('lower','upper'), help='scaling group range')
     args = parser.parse_args()
 
     os.makedirs(OUTDIR, exist_ok=True)
@@ -85,9 +84,12 @@ def main():
             y_mean, y_std = f[f'/{atom}/normalization'][...]
             normalization[atom] = [y_mean, y_std]
 
+    # scaling group
+    scaling_group = [list(range(l, u)) for l, u in args.scaling]
+
     # resid group indeces
     group_indeces = []
-    for resid_list in SCALING_GROUP:
+    for resid_list in scaling_group:
         indeces = sum([RESID_GROUP_INDECES[resid] for resid in resid_list], [])
         group_indeces.append(indeces)
 
