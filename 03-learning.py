@@ -7,6 +7,7 @@ import h5py
 from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.callbacks import CSVLogger
+from tensorflow.keras.callbacks import ReduceLROnPlateau
 
 from utils_keras import DNN
 from utils_keras import MySequence
@@ -42,6 +43,7 @@ def main():
 
     parser.add_argument('-a', '--atom', type=str,
                         help='designate atom species name ("CA", "N", "C", "O")')
+    parser.add_argument('--scheduler', action='store_true', help='use scheduler')
     args = parser.parse_args()
 
     if not args.atom:
@@ -112,8 +114,17 @@ def learning(args, atom):
         val_generator = MySequence(N_datasets_val, batchsize, X_val, Y_val, args.on_memory)
 
         # learningRateScheduler
-        lr_step_decay = LearningRate_StepDecay(args.epochs, args.lr)
-        lr_scheduler = LearningRateScheduler(lr_step_decay)
+        if args.scheduler:
+            lr_step_decay = LearningRate_StepDecay(args.epochs, args.lr)
+            lr_scheduler = LearningRateScheduler(lr_step_decay)
+        else:
+            lr_scheduler = ReduceLROnPlateau(
+                monitor='val_loss',
+                factor=0.5,
+                patience=5,
+                verbose=1,
+                min_lr=0.00001
+            )
 
         # learning
         model.fit_generator(
