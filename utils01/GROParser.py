@@ -146,6 +146,7 @@ class GROParser:
             arranged_indeces.extend(self.eachatom_indeces[atom])
 
         self.struct = self.struct[arranged_indeces, :]
+        self.init_radiuses = self.init_radiuses[:, arranged_indeces][arranged_indeces, :]
         self.arranged_indeces = arranged_indeces
 
         self.rearranged_indeces = np.argsort(arranged_indeces).tolist()
