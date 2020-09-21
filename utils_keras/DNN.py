@@ -37,7 +37,7 @@ class DNN:
         model.add(Dense(700, input_dim=self.input_dim, activation='tanh'))
         model.add(Dense(512, activation='tanh'))
         model.add(Dense(256, activation='tanh'))
-        model.add(Dense(128, activation='tanh'))
+        model.add(Dense(256, activation='tanh'))
         model.add(Dense(128, activation='tanh'))
         model.add(Dense(128, activation='tanh'))
         model.add(Dense(64, activation='tanh'))

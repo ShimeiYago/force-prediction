@@ -17,6 +17,8 @@ DATASETDIR = "workspace/01-make-datasets"
 CUTOFF_RADIUS = 1.0
 OUTDIR = "workspace/04-simulate"
 
+SAVE_DISTANCE = 200
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -30,7 +32,7 @@ def main():
     parser.add_argument('--model', type=int, default=1, help='model number')
     parser.add_argument('--weights', type=str, nargs=4, required=True, help='model weights (N, CA, C, O)')
 
-    parser.add_argument('--len', type=int, default=5000, help='simulation length')
+    parser.add_argument('--len', type=int, default=1000, help='simulation length (ps)')
     parser.add_argument('-o', type=str, default="trj", help='output name')
     parser.add_argument('-k', type=float, default=0, help='spring constant')
     parser.add_argument('--scaling', type=int, action='append', nargs=2, metavar=('lower','upper'), help='scaling group range')
@@ -103,16 +105,25 @@ def main():
                         CONNECT_INDECES, INIT_RADIUSES, inputdims,
                         init_structs)
 
-    trj = np.zeros((args.len, N_ATOMS, 3))
-    trj[0:2] = init_structs
+    trj = []
+    t = 0
+    pre_struct = init_structs[0]
+    current_struct = init_structs[1]
 
-    for t in range(1, args.len-1):
-        trj[t+1] = leapfrog(trj[t-1], trj[t])
-        print('\r', t+2, '/', args.len, end="")
+    for i in range(1, args.len*SAVE_DISTANCE):
+        next_struct = leapfrog(pre_struct, current_struct)
+
+        if (i+1)%SAVE_DISTANCE == 0:
+            t += 1
+            trj.append(next_struct)
+            print('\r', t, '/', args.len, end="")
+
+        pre_struct = current_struct
+        current_struct = next_struct
     print()
 
-    trj = trj[:, REARRANGED_INDECES, :]
-
+    trj = np.array(trj)[:, REARRANGED_INDECES, :]
+    print(trj.shape)
 
     # ## output ## #
     outnpy = os.path.join(OUTDIR, f"{args.o}.npy")

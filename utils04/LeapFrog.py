@@ -53,9 +53,11 @@ class LeapFrog:
         forces = np.array([np.dot(force, np.linalg.inv(rot_matrix)) for force, rot_matrix in zip(forces, rot_matrices)])
 
         # cal force of spring
-        spring_forces = np.array([self._cal_spring_force(i, r_vecs) for i, r_vecs in enumerate(discriptors)])
-
-        return np.add(forces, spring_forces)
+        if self.k == 0:
+            spring_forces = np.array([self._cal_spring_force(i, r_vecs) for i, r_vecs in enumerate(discriptors)])
+            return np.add(forces, spring_forces)
+        else:
+            return forces
 
     def _cal_spring_force(self, i, r_vecs):
         r_vecs = r_vecs[self.CONNECT_INDECES[i]]

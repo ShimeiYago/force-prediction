@@ -120,10 +120,10 @@ def learning(args, atom):
         else:
             lr_scheduler = ReduceLROnPlateau(
                 monitor='val_loss',
-                factor=0.5,
-                patience=5,
+                factor=0.8,
+                patience=10,
                 verbose=1,
-                min_lr=0.00001
+                min_lr=0.0001
             )
 
         # learning
