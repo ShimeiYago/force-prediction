@@ -5,16 +5,15 @@ import numpy as np
 
 
 class ReadXVGs:
-    def __init__(self, init_time: int, maxlen: int, arranged_indeces: list):
-        self.init_time = init_time
-        self.maxlen = maxlen
+    def __init__(self, target_atom_indeces, arranged_indeces: list):
+        self.target_atom_indeces = target_atom_indeces
         self.arranged_indeces = arranged_indeces
 
-    def __call__(self, fplist: list):
+    def __call__(self, fplist: list, init_time: int, maxlen: int):
         coords_list, forces_list = [], []
         for fp_coord, fp_force in fplist:
-            coord = self._read_xvg(fp_coord)[self.init_time:][:self.maxlen]
-            force = self._read_xvg(fp_force)[self.init_time:][:self.maxlen]
+            coord = self._read_xvg(fp_coord)[init_time:][:maxlen]
+            force = self._read_xvg(fp_force)[init_time:][:maxlen]
 
             # check shape
             self._check_shape(coord.shape, force.shape, fp_coord, fp_force)
@@ -33,10 +32,10 @@ class ReadXVGs:
         return coords, forces
 
     def _read_xvg(self, filepath: str):
-        data = ddf.read_csv(filepath, comment='@', delimiter='\t',
+        data = ddf.read_csv(filepath, comment='@', delimiter='\t', sample=1000000,
                             header=None, skiprows=14).to_dask_array(lengths=True)[:, 1:]
 
-        return data.reshape(data.shape[0], -1, 3)
+        return data.reshape(data.shape[0], -1, 3)[:, self.target_atom_indeces, :]
 
     def _check_shape(self, shape1: tuple, shape2: tuple, fp1: str, fp2: str):
         if shape1 != shape2:

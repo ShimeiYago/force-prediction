@@ -25,8 +25,11 @@ def main():
     parser.add_argument('-i', '--inputs', action='append', nargs=2, metavar=('coord','force'), required=True, help='two xvg files')
     parser.add_argument('-v', '--inputs_val', action='append', nargs=2, metavar=('coord','force'), 
                         help='if you prepare validation data aside from inputted files, specify the two files')
-    parser.add_argument('--init_time', default=0, type=int, help='initial time to use')
-    parser.add_argument('--maxlen', type=int, help='max length of trajectory to use')
+
+    parser.add_argument('--init_time_t', default=0, type=int, help='initial time to use (train)')
+    parser.add_argument('--init_time_v', default=0, type=int, help='initial time to use (val)')
+    parser.add_argument('--maxlen_t', type=int, help='max length of trajectory to use (train)')
+    parser.add_argument('--maxlen_v', type=int, help='max length of trajectory to use (val)')
     parser.add_argument('-o', default=os.path.join(OUTDIR, 'datasets.hdf5'),
                         type=str, help='output file name (.hdf5 is recommended)')
     parser.add_argument('-f', action="store_true",
@@ -53,6 +56,7 @@ def main():
     ADJACENT_INDECES = groparser.adjacent_indeces
     AB_INDECES = groparser.ab_indeces
     ATOM_ALIGN = groparser.atom_align
+    TARGET_ATOM_INDECES_FOR_XVG = groparser.target_atom_indeces_for_xvg
 
     # print target atoms
     print('Traget Atoms:', end="")
@@ -63,12 +67,12 @@ def main():
 
     # ## read data ## #
     print('--- Reading trajectory ---')
-    readxvgs = ReadXVGs(args.init_time, args.maxlen, ARRANGED_INDECES)
-    train_coords, train_forces = readxvgs(args.inputs)
+    readxvgs = ReadXVGs(TARGET_ATOM_INDECES_FOR_XVG, ARRANGED_INDECES)
+    train_coords, train_forces = readxvgs(args.inputs, args.init_time_t, args.maxlen_t)
 
     # val data
     if args.inputs_val:
-        val_coords, val_forces = readxvgs(args.inputs_val)
+        val_coords, val_forces = readxvgs(args.inputs_val, args.init_time_v, args.maxlen_v)
     else:
         train_coords, train_forces, val_coords, val_forces = train_val_split(train_coords, train_forces)
 
@@ -97,11 +101,11 @@ def main():
         MAINCHAIN, N_ATOMS, EACH_N_ATOMS, SLICE_INDECES,
         ADJACENT_INDECES, AB_INDECES, ATOM_ALIGN,
         EXPLANATORY_NAME, RESPONSE_NAME)
-    
+
     # input dims
     print('--- Inout dimensions ---')
     for atom in MAINCHAIN:
-        print("[{}] {}".format(atom, discriptor_generator.INPUTDIMS[atom]))
+        print("[{}] {} + {}".format(atom, discriptor_generator.INPUTDIMS[atom], EACH_N_ATOMS[atom]))
 
     # process train data
     print('--- Process Training data ---')

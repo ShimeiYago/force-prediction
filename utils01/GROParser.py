@@ -2,6 +2,7 @@ import numpy as np
 
 
 MAINCHAIN = ['N', 'CA', 'C', 'O']
+MAINCHAIN_CONVERT = {'OT1': 'O'}
 
 
 class GROParser:
@@ -11,18 +12,24 @@ class GROParser:
         # ## load gro file ## #
         self.atom_align = []
         self.struct = []
+        self.target_atom_indeces_for_xvg = []  # xvgファイルからmainchainを取り出す用のindex
         with open(grofile_path) as f:
             f.readline()
             f.readline()
             i = 0
             for line in f:
                 # about atom
-                atom = line[13:15].strip()
-                if atom in self.mainchains:
+                atom = line[12:15].strip()
+                if atom in self.mainchains or atom in MAINCHAIN_CONVERT:
+                    if atom in MAINCHAIN_CONVERT:
+                        atom = MAINCHAIN_CONVERT[atom]
+
                     self.atom_align.append(atom)
 
                     xyz = [float(v) for v in line[23:].split()]
                     self.struct.append(xyz)
+
+                    self.target_atom_indeces_for_xvg.append(int(line[16:20].strip())-1)
 
                 else:
                     continue
@@ -44,7 +51,7 @@ class GROParser:
         #  ## n atoms ## #
         self.n_atoms = len(self.atom_align)
 
-        # ## each atom indeces ## #
+        ## each atom indeces ## #
         self.eachatom_indeces = {}
         for atom in MAINCHAIN:
             self.eachatom_indeces[atom] = [i for i in range(self.n_atoms) if self.atom_align[i] == atom]
@@ -81,7 +88,7 @@ class GROParser:
                 connects_indeces.append([backchain_indeces[0], frontchain_indeces[0]])
             elif atom == 'C':
                 index_a, index_b = backchain_indeces[0:2]
-                if len(frontchain_indeces) > 0:
+                if len(frontchain_indeces) > 1:
                     connects_indeces.append([backchain_indeces[0], frontchain_indeces[0], frontchain_indeces[1]])
                 else:
                     connects_indeces.append([backchain_indeces[0]])

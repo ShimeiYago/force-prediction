@@ -36,7 +36,7 @@ class DiscriptorGenerator:
             for n in range(6):
                 max_n_adjacent[atom].append(max([len(x[n]) for x in tmp_adjacent_indeces]))
 
-        # inputdim
+        # inputdim （これはresidueのonehotは含まれない。つまり実際のnetworkの入力は+309）
         inputdims = {atom: sum(li) * 4 for atom, li in max_n_adjacent.items()}
         max_inputdim = max([dim for dim in inputdims.values()])
 
@@ -92,7 +92,7 @@ class DiscriptorGenerator:
         with h5py.File(self.OUTPATH, mode='r+') as f:
             for atom in self.MAINCHAIN:
                 n_datasets = N_frames * self.EACH_N_ATOMS[atom]
-                inputdim = self.INPUTDIMS[atom]
+                inputdim = self.INPUTDIMS[atom] + self.EACH_N_ATOMS[atom]
 
                 f.create_dataset(
                     name=f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}', shape=(n_datasets, inputdim),
@@ -130,10 +130,15 @@ class DiscriptorGenerator:
 
                     inputdim = self.INPUTDIMS[atom]
 
+                    residue_onehot = np.tile(np.eye(self.EACH_N_ATOMS[atom]), part_length).transpose(1, 0)
+
+                    x = discriptors[:, atom_indeces_l:atom_indeces_u, :inputdim].reshape(-1, inputdim)
+                    y = forces[:, atom_indeces_l:atom_indeces_u, :].reshape(-1, 3)
+
                     X = f[f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}']
                     Y = f[f'/{atom}/{groupname}/{self.RESPONSE_NAME}']
-                    X[ll:uu] = discriptors[:, atom_indeces_l:atom_indeces_u, :inputdim].reshape(-1, inputdim)
-                    Y[ll:uu] = forces[:, atom_indeces_l:atom_indeces_u, :].reshape(-1, 3)
+                    X[ll:uu] = np.concatenate([x, residue_onehot], axis=1)
+                    Y[ll:uu] = y
 
             # print progress
             elapsed_time = time.time() - start_time
