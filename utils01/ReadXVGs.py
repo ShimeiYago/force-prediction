@@ -22,8 +22,9 @@ class ReadXVGs:
             forces_list.append(force)
 
         # concatenate
-        coords = da.concatenate(coords_list, 0)
-        forces = da.concatenate(forces_list, 0)
+        n_atoms = len(self.arranged_indeces)
+        coords = da.stack(coords_list).transpose(1, 0, 2, 3).reshape(-1, n_atoms, 3)
+        forces = da.stack(forces_list).transpose(1, 0, 2, 3).reshape(-1, n_atoms, 3)
 
         # arrange order
         coords = coords[:, self.arranged_indeces, :]
