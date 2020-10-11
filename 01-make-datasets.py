@@ -105,7 +105,7 @@ def main():
     # input dims
     print('--- Inout dimensions ---')
     for atom in MAINCHAIN:
-        print("[{}] {} + {}".format(atom, discriptor_generator.INPUTDIMS[atom], EACH_N_ATOMS[atom]))
+        print("[{}] {} ({})".format(atom, discriptor_generator.INPUTDIMS[atom], discriptor_generator.INPUTDIMS_ONLY_DESCRIPTOR[atom]))
 
     # process train data
     print('--- Process Training data ---')

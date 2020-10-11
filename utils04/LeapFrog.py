@@ -8,7 +8,8 @@ class LeapFrog:
     def __init__(self, discriptor_generator, model, normalization, k,
                  N_ATOMS, MAINCHAIN, SLICE_INDECES, ATOM_ALIGN,
                  group_indeces,
-                 CONNECT_INDECES, INIT_RADIUSES, INPUTDIMS,
+                 CONNECT_INDECES, INIT_RADIUSES, 
+                 INPUTDIMS_ONLY_DESCRIPTOR, EACH_N_ATOMS,
                  init_struct):
         self.discriptor_generator = discriptor_generator
         self.model = model
@@ -21,7 +22,8 @@ class LeapFrog:
         self.GROUP_INDECES = group_indeces
         self.CONNECT_INDECES = CONNECT_INDECES
         self.INIT_RADIUSES = INIT_RADIUSES
-        self.INPUTDIMS = INPUTDIMS
+        self.INPUTDIMS_ONLY_DESCRIPTOR = INPUTDIMS_ONLY_DESCRIPTOR
+        self.EACH_N_ATOMS = EACH_N_ATOMS
 
         self.weights = np.array([MASS[atom] for atom in ATOM_ALIGN])
 
@@ -43,8 +45,10 @@ class LeapFrog:
         forces = np.zeros((self.N_ATOMS, 3))
         for atom in self.MAINCHAIN:
             i, j = self.SLICE_INDECES[atom]
-            inputdim = self.INPUTDIMS[atom]
-            force = self.model[atom].predict(discriptor[i:j, :inputdim])
+            inputdim_only_descriptor = self.INPUTDIMS_ONLY_DESCRIPTOR[atom]
+            residue_onehot = np.eye(self.EACH_N_ATOMS[atom])
+            X = np.hstack([discriptor[i:j, :inputdim_only_descriptor], residue_onehot])
+            force = self.model[atom].predict(X)
             y_mean, y_std = self.normalization[atom]
             force = np.add(np.multiply(force, y_std), y_mean)
             forces[i:j] = force

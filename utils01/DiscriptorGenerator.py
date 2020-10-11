@@ -20,7 +20,8 @@ class DiscriptorGenerator:
         self.SLICE_INDECES = slice_indeces
         self.AB_INDECES = ab_indeces
 
-        self.ADJACENT_INDECES, self.INPUTDIMS = self._rewrite_indeces(adjacent_indeces, atom_align)
+        self.ADJACENT_INDECES, self.INPUTDIMS_ONLY_DESCRIPTOR, self.INPUTDIMS \
+            = self._rewrite_indeces(adjacent_indeces, atom_align)
 
         self.EXPLANATORY_NAME = EXPLANATORY_NAME
         self.RESPONSE_NAME = RESPONSE_NAME
@@ -36,9 +37,11 @@ class DiscriptorGenerator:
             for n in range(6):
                 max_n_adjacent[atom].append(max([len(x[n]) for x in tmp_adjacent_indeces]))
 
-        # inputdim （これはresidueのonehotは含まれない。つまり実際のnetworkの入力は+309）
-        inputdims = {atom: sum(li) * 4 for atom, li in max_n_adjacent.items()}
-        max_inputdim = max([dim for dim in inputdims.values()])
+        # inputdim_only_descriptor （これはresidueのonehotは含まれない。つまり実際ののinputdimは+309）
+        inputdims_only_descriptor = {atom: sum(li) * 4 for atom, li in max_n_adjacent.items()}
+        max_inputdim_only = max([dim for dim in inputdims_only_descriptor.values()])
+
+        inputdims = {atom: dims+self.EACH_N_ATOMS[atom] for atom, dims in inputdims_only_descriptor.items()}
 
         # maxになるように自分自身のindexで埋める
         new_adjacent_indeces = adjacent_indeces
@@ -53,10 +56,10 @@ class DiscriptorGenerator:
             adjacent_indeces_i = []
             for j in range(len(adjacent_indeces[i])):
                 adjacent_indeces_i = adjacent_indeces_i + adjacent_indeces[i][j]
-            adjacent_indeces[i] = adjacent_indeces_i + ([i] * (max_inputdim // 4 - len(adjacent_indeces_i)))
+            adjacent_indeces[i] = adjacent_indeces_i + ([i] * (max_inputdim_only // 4 - len(adjacent_indeces_i)))
 
         adjacent_indeces = np.array(adjacent_indeces)
-        return adjacent_indeces, inputdims
+        return adjacent_indeces, inputdims_only_descriptor, inputdims
 
 
     def __call__(self, coords, forces, groupname):
@@ -92,7 +95,7 @@ class DiscriptorGenerator:
         with h5py.File(self.OUTPATH, mode='r+') as f:
             for atom in self.MAINCHAIN:
                 n_datasets = N_frames * self.EACH_N_ATOMS[atom]
-                inputdim = self.INPUTDIMS[atom] + self.EACH_N_ATOMS[atom]
+                inputdim = self.INPUTDIMS[atom]
 
                 f.create_dataset(
                     name=f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}', shape=(n_datasets, inputdim),
@@ -128,11 +131,11 @@ class DiscriptorGenerator:
                     ll = l * self.EACH_N_ATOMS[atom]
                     uu = u * self.EACH_N_ATOMS[atom]
 
-                    inputdim = self.INPUTDIMS[atom]
+                    inputdim_only = self.INPUTDIMS_ONLY_DESCRIPTOR[atom]
 
                     residue_onehot = np.tile(np.eye(self.EACH_N_ATOMS[atom]), part_length).transpose(1, 0)
 
-                    x = discriptors[:, atom_indeces_l:atom_indeces_u, :inputdim].reshape(-1, inputdim)
+                    x = discriptors[:, atom_indeces_l:atom_indeces_u, :inputdim_only].reshape(-1, inputdim_only)
                     y = forces[:, atom_indeces_l:atom_indeces_u, :].reshape(-1, 3)
 
                     X = f[f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}']
