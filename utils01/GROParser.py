@@ -1,7 +1,7 @@
 import numpy as np
 
 
-MAINCHAIN = ['N', 'CA', 'C', 'O']
+MAINCHAIN = ['N', 'CA', 'CB', 'C', 'O']
 MAINCHAIN_CONVERT = {'OT1': 'O'}
 
 
@@ -63,9 +63,9 @@ class GROParser:
 
     def _cal_adjacent(self, cutoff_radius):
         # define indeces
-        adjacent_indeces = []  # adjacent_indeces[0] = [back-chains, front-chains, floatN, floatCA, floatC, floatO]
+        adjacent_indeces = []  # adjacent_indeces[0] = [back-chains, front-chains, floatN, floatCA, floatCB, floatC, floatO]
         ab_indeces = []  # [index_a, index_b]
-        max_n_adjacent = [0, 0, 0, 0, 0, 0]
+        max_n_adjacent = [0, 0, 0, 0, 0, 0, 0]
         connects_indeces = []
         self.init_radiuses = []
         for i in range(self.n_atoms):
@@ -86,8 +86,11 @@ class GROParser:
             elif atom == 'CA':
                 index_a, index_b = backchain_indeces[0], frontchain_indeces[0]
                 connects_indeces.append([backchain_indeces[0], frontchain_indeces[0]])
-            elif atom == 'C':
+            elif atom == 'CB':
                 index_a, index_b = backchain_indeces[0:2]
+                connects_indeces.append([backchain_indeces[0]])
+            elif atom == 'C':
+                index_a, index_b = backchain_indeces[0], frontchain_indeces[0]
                 if len(frontchain_indeces) > 1:
                     connects_indeces.append([backchain_indeces[0], frontchain_indeces[0], frontchain_indeces[1]])
                 else:

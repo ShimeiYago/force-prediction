@@ -30,7 +30,7 @@ def main():
                         help='input datasets')
 
     parser.add_argument('--model', type=int, default=1, help='model number')
-    parser.add_argument('--weights', type=str, nargs=4, required=True, help='model weights (N, CA, C, O)')
+    parser.add_argument('--weights', type=str, nargs=4, required=True, help='model weights (N, CA, CB, C, O)')
 
     parser.add_argument('--len', type=int, default=500, help='outputed trj length')
     parser.add_argument('--save_distance', type=int, default=1, help='save each steps')

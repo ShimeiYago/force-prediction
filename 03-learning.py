@@ -24,7 +24,7 @@ VAL_NAME = "validation"
 EXPLANATORY_NAME = "x"
 RESPONSE_NAME = "y"
 
-MAINCHAIN = ['N', 'CA', 'C', 'O']
+MAINCHAIN = ['N', 'CA', 'CB', 'C', 'O']
 
 
 def main():
@@ -42,7 +42,7 @@ def main():
     parser.add_argument('--on_memory', action='store_true', help='rapidly but use much memory')
 
     parser.add_argument('-a', '--atom', type=str,
-                        help='designate atom species name ("CA", "N", "C", "O")')
+                        help='designate atom species name ("CA", "CB", "N", "C", "O")')
     parser.add_argument('--scheduler', action='store_true', help='use scheduler')
     args = parser.parse_args()
 

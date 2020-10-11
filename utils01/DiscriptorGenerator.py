@@ -34,7 +34,7 @@ class DiscriptorGenerator:
         for atom in self.MAINCHAIN:
             l, u = self.SLICE_INDECES[atom]
             tmp_adjacent_indeces = [adjacent_indeces[i] for i in range(l, u)]
-            for n in range(6):
+            for n in range(len(adjacent_indeces[0])):
                 max_n_adjacent[atom].append(max([len(x[n]) for x in tmp_adjacent_indeces]))
 
         # inputdim_only_descriptor （これはresidueのonehotは含まれない。つまり実際ののinputdimは+309）
