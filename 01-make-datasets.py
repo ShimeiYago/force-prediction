@@ -12,7 +12,7 @@ from utils01 import DiscriptorGenerator
 
 OUTDIR = 'workspace/01-make-datasets'
 CUTOFF_RADIUS = 1.0
-TRAIN_SIZE = 0.75  # used if validation data is specified
+TRAIN_SIZE = 0.9  # used if validation data is specified
 
 TRAIN_NAME = "training"
 VAL_NAME = "validation"
