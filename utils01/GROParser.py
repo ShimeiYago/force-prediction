@@ -2,8 +2,8 @@ import numpy as np
 import sys
 
 
-# MAINCHAIN = ['N', 'CA', 'CB', 'C', 'O']
-MAINCHAIN = ['N', 'CA', 'C', 'O']
+MAINCHAIN = ['N', 'CA', 'CB', 'C', 'O']
+# MAINCHAIN = ['N', 'CA', 'C', 'O']
 MAINCHAIN_CONVERT = {'OT1': 'O'}
 
 
