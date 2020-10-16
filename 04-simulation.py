@@ -37,12 +37,13 @@ def main():
     parser.add_argument('-o', type=str, default="trj", help='output name')
     parser.add_argument('-k', type=float, default=0, help='spring constant')
     parser.add_argument('--scaling', type=int, action='append', nargs=2, metavar=('lower','upper'), help='scaling group range')
+    parser.add_argument('--cb', action="store_true", help='mainchain + CB mode')
     args = parser.parse_args()
 
     os.makedirs(OUTDIR, exist_ok=True)
 
     # ## load gro file ## #
-    groparser = GROParser(args.gro, CUTOFF_RADIUS)
+    groparser = GROParser(args.gro, CUTOFF_RADIUS, args.cb)
     MAINCHAIN = groparser.mainchains
     N_ATOMS = groparser.n_atoms
     EACH_N_ATOMS = groparser.each_n_atoms

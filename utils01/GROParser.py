@@ -2,13 +2,18 @@ import numpy as np
 import sys
 
 
-MAINCHAIN = ['N', 'CA', 'CB', 'C', 'O']
-# MAINCHAIN = ['N', 'CA', 'C', 'O']
+MAINCHAIN_CB = ['N', 'CA', 'C', 'O']
+MAINCHAIN = ['N', 'CA', 'C', 'O']
 MAINCHAIN_CONVERT = {'OT1': 'O'}
 
 
 class GROParser:
-    def __init__(self, grofile_path, cutoff_radius):
+    def __init__(self, grofile_path, cutoff_radius, cb_mode):
+        if cb_mode:
+            self.mainchains = MAINCHAIN_CB
+        else:
+            self.mainchains = MAINCHAIN
+
         self.mainchains = MAINCHAIN
         self.resid_group_indeces = {}
         # ## load gro file ## #

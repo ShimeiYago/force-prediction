@@ -39,6 +39,7 @@ def main():
 
     parser.add_argument('-b', '--batch', type=int,
                         help='batchsize for one process (recommend: the Number of Frames, divided by any natural number)')
+    parser.add_argument('--cb', action="store_true", help='mainchain + CB mode')
     args = parser.parse_args()
 
     # ## check output file existing ## #
@@ -47,7 +48,7 @@ def main():
 
     # ## parse gro file ## #
     print('--- Reading gro file ---')
-    groparser = GROParser(args.gro, CUTOFF_RADIUS)
+    groparser = GROParser(args.gro, CUTOFF_RADIUS, args.cb)
     MAINCHAIN = groparser.mainchains
     N_ATOMS = groparser.n_atoms
     EACH_N_ATOMS = groparser.each_n_atoms
