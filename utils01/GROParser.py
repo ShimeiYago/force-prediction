@@ -1,7 +1,9 @@
 import numpy as np
+import sys
 
 
-MAINCHAIN = ['N', 'CA', 'CB', 'C', 'O']
+# MAINCHAIN = ['N', 'CA', 'CB', 'C', 'O']
+MAINCHAIN = ['N', 'CA', 'C', 'O']
 MAINCHAIN_CONVERT = {'OT1': 'O'}
 
 
@@ -63,9 +65,9 @@ class GROParser:
 
     def _cal_adjacent(self, cutoff_radius):
         # define indeces
-        adjacent_indeces = []  # adjacent_indeces[0] = [back-chains, front-chains, floatN, floatCA, floatCB, floatC, floatO]
+        adjacent_indeces = []  # adjacent_indeces[0] = [back-chains, front-chains, floatN, floatCA, ...]
         ab_indeces = []  # [index_a, index_b]
-        max_n_adjacent = [0, 0, 0, 0, 0, 0, 0]
+        max_n_adjacent = [0] * (len(MAINCHAIN) + 2)
         connects_indeces = []
         self.init_radiuses = []
         for i in range(self.n_atoms):
@@ -78,26 +80,62 @@ class GROParser:
             # define a, b, and connects
             atom = self.atom_align[i]
             if atom == 'N':
-                index_a, index_b = frontchain_indeces[0:2]
+                index_a = frontchain_indeces[0]
+                if self.atom_align[i+2] == 'CB':
+                    index_b = frontchain_indeces[2]
+                elif self.atom_align[i+2] == 'C':
+                    index_b = frontchain_indeces[1]
+                else:
+                    print('Error: define a, b, and connects')
+                    sys.exit()
+
                 if len(backchain_indeces) > 0:
                     connects_indeces.append([backchain_indeces[1], frontchain_indeces[0]])
                 else:
                     connects_indeces.append([frontchain_indeces[0]])
+
             elif atom == 'CA':
-                index_a, index_b = backchain_indeces[0], frontchain_indeces[0]
-                connects_indeces.append([backchain_indeces[0], frontchain_indeces[0]])
+                index_a = backchain_indeces[0]
+                if self.atom_align[i+1] == 'CB':
+                    index_b = frontchain_indeces[1]
+                    connects_indeces.append([index_a, frontchain_indeces[0], index_b])
+                elif self.atom_align[i+1] == 'C':
+                    index_b = frontchain_indeces[0]
+                    connects_indeces.append([index_a, index_b])
+                else:
+                    print('Error: define a, b, and connects')
+                    sys.exit()
+
             elif atom == 'CB':
                 index_a, index_b = backchain_indeces[0:2]
                 connects_indeces.append([backchain_indeces[0]])
+
             elif atom == 'C':
-                index_a, index_b = backchain_indeces[0], frontchain_indeces[0]
-                if len(frontchain_indeces) > 1:
-                    connects_indeces.append([backchain_indeces[0], frontchain_indeces[0], frontchain_indeces[1]])
+                index_a = frontchain_indeces[0]
+                if self.atom_align[i-1] == 'CB':
+                    index_b = backchain_indeces[1]
+                elif self.atom_align[i-1] == 'CA':
+                    index_b = backchain_indeces[0]
                 else:
-                    connects_indeces.append([backchain_indeces[0]])
+                    print('Error: define a, b, and connects')
+                    sys.exit()
+
+                if len(frontchain_indeces) > 1:
+                    connects_indeces.append([index_a, index_b, frontchain_indeces[1]])
+                else:
+                    connects_indeces.append([index_a, index_b])
+
             elif atom == 'O':
-                index_a, index_b = backchain_indeces[0:2]
-                connects_indeces.append([backchain_indeces[0]])
+                index_a = backchain_indeces[0]
+                if self.atom_align[i-2] == 'CB':
+                    index_b = backchain_indeces[2]
+                elif self.atom_align[i-2] == 'CA':
+                    index_b = backchain_indeces[1]
+                else:
+                    print('Error: define a, b, and connects')
+                    sys.exit()
+                connects_indeces.append([index_a])
+
             ab_indeces.append([index_a, index_b])
 
             # cut back indeces
@@ -111,6 +149,7 @@ class GROParser:
                 if self.atom_align[grobal_idx] == "O" and radiuses[grobal_idx-1] <= cutoff_radius:
                     backchain_indeces.append(grobal_idx)  # "O"
                     backchain_indeces.append(grobal_idx-1)  # "C"
+
                 break
 
             # cut front indeces
