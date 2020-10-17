@@ -62,12 +62,12 @@ class DiscriptorGenerator:
         return adjacent_indeces, inputdims_only_descriptor, inputdims
 
 
-    def __call__(self, coords, forces, groupname):
+    def __call__(self, coords, forces, groupname, only_terminal_rate=0.0):
         # ## preprocess ## #
         descriptors = self._preprocess(coords)
 
         # ## main process ## #
-        self._mainprocess(descriptors, forces, groupname)
+        self._mainprocess(descriptors, forces, groupname, only_terminal_rate)
 
         # ## output final shape ## #
         with h5py.File(self.OUTPATH, mode='r') as f:
@@ -89,12 +89,20 @@ class DiscriptorGenerator:
         return descriptors
 
 
-    def _mainprocess(self, total_descriptors, total_forces, groupname):
+    def _mainprocess(self, total_descriptors, total_forces, groupname, only_terminal_rate):
         N_frames = total_descriptors.shape[0]
+        part_index_list = list(range(0, N_frames, self.BATCHSIZE)) + [N_frames]
+        N_process = math.ceil(N_frames / self.BATCHSIZE)
+        N_process_only_terminal = math.ceil(N_process * only_terminal_rate)
+        N_process_full = N_process - N_process_only_terminal
+        N_frames_full = part_index_list[N_process_full]
 
         with h5py.File(self.OUTPATH, mode='r+') as f:
             for atom in self.MAINCHAIN:
-                n_datasets = N_frames * self.EACH_N_ATOMS[atom]
+                n_datasets = N_frames_full * self.EACH_N_ATOMS[atom]
+                if atom == 'N' or atom == 'C':
+                    n_datasets += N_frames - N_frames_full
+
                 inputdim = self.INPUTDIMS[atom]
 
                 f.create_dataset(
@@ -105,9 +113,13 @@ class DiscriptorGenerator:
                     compression='gzip', dtype=np.float64)
 
         # the process
-        part_index_list = list(range(0, N_frames, self.BATCHSIZE)) + [N_frames]
-        N_process = math.ceil(N_frames / self.BATCHSIZE)
         for i in range(N_process):
+            # mode
+            if i < N_process_full:
+                only_terminal = False
+            else:
+                only_terminal = True
+
             start_time = time.time()
             l, u = part_index_list[i:i+2]
             part_length = u - l
@@ -127,20 +139,37 @@ class DiscriptorGenerator:
             # save to hdf5
             with h5py.File(self.OUTPATH, mode='r+') as f:
                 for atom in self.MAINCHAIN:
+                    if only_terminal and not(atom == 'C' or atom == 'N'):
+                        continue
+
                     atom_indeces_l, atom_indeces_u = self.SLICE_INDECES[atom]
-                    ll = l * self.EACH_N_ATOMS[atom]
-                    uu = u * self.EACH_N_ATOMS[atom]
+
+                    if not only_terminal:
+                        ll = l * self.EACH_N_ATOMS[atom]
+                        uu = u * self.EACH_N_ATOMS[atom]
+                    else:
+                        ll = N_frames_full * self.EACH_N_ATOMS[atom] + (l - N_frames_full)
+                        uu = ll + part_length
 
                     inputdim_only = self.INPUTDIMS_ONLY_DESCRIPTOR[atom]
 
                     residue_onehot = np.tile(np.eye(self.EACH_N_ATOMS[atom]), part_length).transpose(1, 0)
 
                     x = discriptors[:, atom_indeces_l:atom_indeces_u, :inputdim_only].reshape(-1, inputdim_only)
-                    y = forces[:, atom_indeces_l:atom_indeces_u, :].reshape(-1, 3)
+                    x = np.concatenate([x, residue_onehot], axis=1)
+                    if only_terminal:
+                        if atom == 'N':
+                            x = x.reshape(part_length, self.EACH_N_ATOMS[atom], -1)[:, 0, :].reshape(-1, self.INPUTDIMS[atom])
+                            y = forces[:, atom_indeces_l:atom_indeces_u, :][:, 0, :].reshape(-1, 3)
+                        elif atom == 'C':
+                            x = x.reshape(part_length, self.EACH_N_ATOMS[atom], -1)[:, -1, :].reshape(-1, self.INPUTDIMS[atom])
+                            y = forces[:, atom_indeces_l:atom_indeces_u, :][:, -1, :].reshape(-1, 3)
+                    else:
+                        y = forces[:, atom_indeces_l:atom_indeces_u, :].reshape(-1, 3)
 
                     X = f[f'/{atom}/{groupname}/{self.EXPLANATORY_NAME}']
                     Y = f[f'/{atom}/{groupname}/{self.RESPONSE_NAME}']
-                    X[ll:uu] = np.concatenate([x, residue_onehot], axis=1)
+                    X[ll:uu] = x
                     Y[ll:uu] = y
 
             # print progress

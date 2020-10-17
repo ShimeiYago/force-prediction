@@ -23,7 +23,7 @@ RESPONSE_NAME = "y"
 def main():
     parser = argparse.ArgumentParser(description='This script create datasets for deep learning.')
     parser.add_argument('-i', '--inputs', action='append', nargs=4, metavar=('coord','force', 'init_time', 'maxlen'),
-                        required=True, help='two xvg files , init_time, and maxlen')
+                        required=True, help='two xvg files, init_time, and maxlen')
     parser.add_argument('-v', '--inputs_val', action='append', nargs=4, metavar=('coord','force', 'init_time', 'maxlen'), 
                         help='if you prepare validation data aside from inputted files, specify the two files')
 
@@ -37,6 +37,7 @@ def main():
     parser.add_argument('-b', '--batch', type=int,
                         help='batchsize for one process (recommend: the Number of Frames, divided by any natural number)')
     parser.add_argument('--cb', action="store_true", help='mainchain + CB mode')
+    parser.add_argument('--only_terminal_rate', type=float, default=0.0, help='to inclease both terminal datasets')
     args = parser.parse_args()
 
     # ## check output file existing ## #
@@ -107,7 +108,7 @@ def main():
 
     # process train data
     print('--- Process Training data ---')
-    discriptor_generator(train_coords, train_forces, TRAIN_NAME)
+    discriptor_generator(train_coords, train_forces, TRAIN_NAME, args.only_terminal_rate)
 
     # process val data
     print('--- Process Validation data ---')
