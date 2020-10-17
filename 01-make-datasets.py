@@ -12,7 +12,7 @@ from utils01 import DiscriptorGenerator
 
 OUTDIR = 'workspace/01-make-datasets'
 CUTOFF_RADIUS = 1.0
-TRAIN_SIZE = 0.75  # used if validation data is specified
+TRAIN_SIZE = 0.9  # used if validation data is specified
 
 TRAIN_NAME = "training"
 VAL_NAME = "validation"
@@ -22,14 +22,11 @@ RESPONSE_NAME = "y"
 
 def main():
     parser = argparse.ArgumentParser(description='This script create datasets for deep learning.')
-    parser.add_argument('-i', '--inputs', action='append', nargs=2, metavar=('coord','force'), required=True, help='two xvg files')
-    parser.add_argument('-v', '--inputs_val', action='append', nargs=2, metavar=('coord','force'), 
+    parser.add_argument('-i', '--inputs', action='append', nargs=4, metavar=('coord','force', 'init_time', 'maxlen'),
+                        required=True, help='two xvg files , init_time, and maxlen')
+    parser.add_argument('-v', '--inputs_val', action='append', nargs=4, metavar=('coord','force', 'init_time', 'maxlen'), 
                         help='if you prepare validation data aside from inputted files, specify the two files')
 
-    parser.add_argument('--init_time_t', default=0, type=int, help='initial time to use (train)')
-    parser.add_argument('--init_time_v', default=0, type=int, help='initial time to use (val)')
-    parser.add_argument('--maxlen_t', type=int, help='max length of trajectory to use (train)')
-    parser.add_argument('--maxlen_v', type=int, help='max length of trajectory to use (val)')
     parser.add_argument('-o', default=os.path.join(OUTDIR, 'datasets.hdf5'),
                         type=str, help='output file name (.hdf5 is recommended)')
     parser.add_argument('-f', action="store_true",
@@ -69,11 +66,11 @@ def main():
     # ## read data ## #
     print('--- Reading trajectory ---')
     readxvgs = ReadXVGs(TARGET_ATOM_INDECES_FOR_XVG, ARRANGED_INDECES)
-    train_coords, train_forces = readxvgs(args.inputs, args.init_time_t, args.maxlen_t)
+    train_coords, train_forces = readxvgs(args.inputs)
 
     # val data
     if args.inputs_val:
-        val_coords, val_forces = readxvgs(args.inputs_val, args.init_time_v, args.maxlen_v)
+        val_coords, val_forces = readxvgs(args.inputs_val)
     else:
         train_coords, train_forces, val_coords, val_forces = train_val_split(train_coords, train_forces)
 

@@ -9,9 +9,11 @@ class ReadXVGs:
         self.target_atom_indeces = target_atom_indeces
         self.arranged_indeces = arranged_indeces
 
-    def __call__(self, fplist: list, init_time: int, maxlen: int):
+    def __call__(self, fplist: list):
         coords_list, forces_list = [], []
-        for fp_coord, fp_force in fplist:
+        for fp_coord, fp_force, init_time, maxlen in fplist:
+            init_time = int(init_time)
+            maxlen = int(maxlen)
             coord = self._read_xvg(fp_coord)[init_time:][:maxlen]
             force = self._read_xvg(fp_force)[init_time:][:maxlen]
 

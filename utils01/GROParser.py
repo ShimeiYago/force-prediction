@@ -2,7 +2,7 @@ import numpy as np
 import sys
 
 
-MAINCHAIN_CB = ['N', 'CA', 'C', 'O']
+MAINCHAIN_CB = ['N', 'CA', 'CB', 'C', 'O']
 MAINCHAIN = ['N', 'CA', 'C', 'O']
 MAINCHAIN_CONVERT = {'OT1': 'O'}
 
@@ -14,7 +14,6 @@ class GROParser:
         else:
             self.mainchains = MAINCHAIN
 
-        self.mainchains = MAINCHAIN
         self.resid_group_indeces = {}
         # ## load gro file ## #
         self.atom_align = []
@@ -60,7 +59,7 @@ class GROParser:
 
         ## each atom indeces ## #
         self.eachatom_indeces = {}
-        for atom in MAINCHAIN:
+        for atom in self.mainchains:
             self.eachatom_indeces[atom] = [i for i in range(self.n_atoms) if self.atom_align[i] == atom]
         self.each_n_atoms = {atom: len(indeces) for atom, indeces in self.eachatom_indeces.items()}
 
@@ -72,7 +71,7 @@ class GROParser:
         # define indeces
         adjacent_indeces = []  # adjacent_indeces[0] = [back-chains, front-chains, floatN, floatCA, ...]
         ab_indeces = []  # [index_a, index_b]
-        max_n_adjacent = [0] * (len(MAINCHAIN) + 2)
+        max_n_adjacent = [0] * (len(self.mainchains) + 2)
         connects_indeces = []
         self.init_radiuses = []
         for i in range(self.n_atoms):
