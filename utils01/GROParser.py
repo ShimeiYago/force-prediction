@@ -150,18 +150,27 @@ class GROParser:
 
                 backchain_indeces = backchain_indeces[:j]
 
-                if self.atom_align[grobal_idx] == "O" and radiuses[grobal_idx-1] <= cutoff_radius:
-                    backchain_indeces.append(grobal_idx)  # "O"
-                    backchain_indeces.append(grobal_idx-1)  # "C"
+                # cut CB
+                backchain_indeces = [x for x in backchain_indeces if self.atom_align[grobal_idx] != 'CB']
+
+                # if self.atom_align[grobal_idx] == "O" and radiuses[grobal_idx-1] <= cutoff_radius:
+                #     backchain_indeces.append(grobal_idx)  # "O"
+                #     backchain_indeces.append(grobal_idx-1)  # "C"
 
                 break
 
             # cut front indeces
             for j in range(len(frontchain_indeces)):
                 grobal_idx = frontchain_indeces[j]
-                if radiuses[grobal_idx] > cutoff_radius:
-                    frontchain_indeces = frontchain_indeces[:j]
-                    break
+                if radiuses[grobal_idx] <= cutoff_radius:
+                    continue
+
+                frontchain_indeces = frontchain_indeces[:j]
+
+                # cut CB
+                frontchain_indeces = [x for x in frontchain_indeces if self.atom_align[grobal_idx] != 'CB']
+
+                break
 
             # floats indeces
             float_indeces = [

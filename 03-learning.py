@@ -41,17 +41,12 @@ def main():
 
     parser.add_argument('--on_memory', action='store_true', help='rapidly but use much memory')
 
-    parser.add_argument('-a', '--atom', type=str,
+    parser.add_argument('-a', '--atom', type=str, required=True,
                         help='designate atom species name ("CA", "CB", "N", "C", "O")')
     parser.add_argument('--scheduler', action='store_true', help='use scheduler')
     args = parser.parse_args()
 
-    if not args.atom:
-        for atom in MAINCHAIN:
-            print(f'---------- {atom} ----------')
-            learning(args, atom)
-    else:
-        learning(args, args.atom)
+    learning(args, args.atom)
 
 
 def learning(args, atom):
