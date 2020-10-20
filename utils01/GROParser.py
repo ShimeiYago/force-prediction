@@ -115,11 +115,10 @@ class GROParser:
                 connects_indeces.append([backchain_indeces[0]])
 
             elif atom == 'C':
-                index_a = frontchain_indeces[0]
                 if self.atom_align[i-1] == 'CB':
-                    index_b = backchain_indeces[1]
+                    index_a, index_b = backchain_indeces[1:3]
                 elif self.atom_align[i-1] == 'CA':
-                    index_b = backchain_indeces[0]
+                    index_a, index_b = backchain_indeces[:2]
                 else:
                     print('Error: define a, b, and connects')
                     sys.exit()

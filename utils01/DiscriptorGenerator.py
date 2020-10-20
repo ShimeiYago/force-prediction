@@ -4,6 +4,12 @@ import h5py
 import math
 import time
 
+R_DUMMY_CN = 0.134
+THETA_DUMMY_C = 96
+PHI_DUMMY = 42  # わざと符合逆にしてる
+THETA_DUMMY_N = 118
+PSI_DUMMY = -54
+
 
 class DiscriptorGenerator:
     def __init__(self, outpath, batchsize,
@@ -20,13 +26,26 @@ class DiscriptorGenerator:
         self.SLICE_INDECES = slice_indeces
         self.AB_INDECES = ab_indeces
 
-        self.ADJACENT_INDECES, self.INPUTDIMS_ONLY_DESCRIPTOR, self.INPUTDIMS \
+        self.ADJACENT_INDECES, self.MAX_N_ADJACENT, self.INPUTDIMS_ONLY_DESCRIPTOR, self.INPUTDIMS \
             = self._rewrite_indeces(adjacent_indeces, atom_align)
 
         self.EXPLANATORY_NAME = EXPLANATORY_NAME
         self.RESPONSE_NAME = RESPONSE_NAME
 
         self.MAX_RECIPROCAL_DADIUS = 10
+
+        # dummy C of N-terminal and N of C-terminal
+        x = R_DUMMY_CN * np.cos(np.deg2rad(THETA_DUMMY_C))
+        y = R_DUMMY_CN * np.cos(np.deg2rad(PHI_DUMMY))
+        z = np.sqrt(R_DUMMY_CN**2 - x**2 - y**2)
+        self.dummy_c = np.array([x, y, z])
+
+        x = R_DUMMY_CN * np.cos(np.deg2rad(THETA_DUMMY_N))
+        y = R_DUMMY_CN * np.cos(np.deg2rad(PSI_DUMMY))
+        z = np.sqrt(R_DUMMY_CN**2 - x**2 - y**2)
+        self.dummy_n = np.array([x, y, z])
+
+
 
     def _rewrite_indeces(self, adjacent_indeces, atom_align):
         # max_n_adjacent
@@ -59,7 +78,7 @@ class DiscriptorGenerator:
             adjacent_indeces[i] = adjacent_indeces_i + ([i] * (max_inputdim_only // 4 - len(adjacent_indeces_i)))
 
         adjacent_indeces = np.array(adjacent_indeces)
-        return adjacent_indeces, inputdims_only_descriptor, inputdims
+        return adjacent_indeces, max_n_adjacent, inputdims_only_descriptor, inputdims
 
 
     def __call__(self, coords, forces, groupname, only_terminal_rate=0.0):
@@ -193,7 +212,7 @@ class DiscriptorGenerator:
 
         return rotation_matrix
 
-    def _descriptor(self, descriptor):
+    def _descriptor(self, descriptor, dummy_flag=False):
         # ## rotation matrix ## #
         rot_matrices = np.array([
             self._cal_rotation_matrix(struct[self.AB_INDECES[i][0]], struct[self.AB_INDECES[i][1]])
@@ -215,10 +234,24 @@ class DiscriptorGenerator:
 
         descriptor = np.array([D[self.ADJACENT_INDECES[i]] for i, D in enumerate(descriptor)])
 
+        # add dummy C into N-terminal and N into C-terminal
+        if dummy_flag:
+            descriptor = self._add_dummy(descriptor)
+
         # reshape
         descriptor = descriptor.reshape(descriptor.shape[0], -1)
 
         return descriptor, rot_matrices
+
+    def _add_dummy(self, descriptor):
+        x, y, z = self.dummy_c / R_DUMMY_CN
+        descriptor[self.SLICE_INDECES['N'][0]] = np.array([R_DUMMY_CN, x, y, z])
+
+        x, y, z = self.dummy_n / R_DUMMY_CN
+        descriptor[self.SLICE_INDECES['C'][1]] = np.array([R_DUMMY_CN, x, y, z])
+
+        return descriptor
+
 
     def normalize(self, gropuname1, groupname2):
         # ## normalize y ## #

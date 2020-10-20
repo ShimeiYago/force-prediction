@@ -10,7 +10,8 @@ class LeapFrog:
                  group_indeces,
                  CONNECT_INDECES, INIT_RADIUSES, 
                  INPUTDIMS_ONLY_DESCRIPTOR, EACH_N_ATOMS,
-                 init_struct):
+                 init_struct,
+                 dummy_flag):
         self.discriptor_generator = discriptor_generator
         self.model = model
         self.normalization = normalization
@@ -30,6 +31,8 @@ class LeapFrog:
         init_veloc = np.subtract(init_struct[1], init_struct[0]) / DT
         self.T2s = self._cal_KE2(init_veloc)
 
+        self.dummy_flag = dummy_flag
+
     def __call__(self, pre_struct, current_struct):
         veloc = np.subtract(current_struct, pre_struct) / DT + np.divide(self._cal_force(current_struct), self.weights.reshape(-1, 1)) * DT
         alphas = self._cal_alpha(veloc)
@@ -39,7 +42,7 @@ class LeapFrog:
         discriptors = np.tile(discriptors, (self.N_ATOMS, 1)).reshape(self.N_ATOMS, -1, 3)
         discriptors = discriptors - discriptors.transpose(1, 0, 2)
 
-        discriptor, rot_matrices = self.discriptor_generator._descriptor(discriptors)
+        discriptor, rot_matrices = self.discriptor_generator._descriptor(discriptors, dummy_flag=self.dummy_flag)
 
         # cal force by model
         forces = np.zeros((self.N_ATOMS, 3))

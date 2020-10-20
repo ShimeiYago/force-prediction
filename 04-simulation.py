@@ -38,6 +38,7 @@ def main():
     parser.add_argument('-k', type=float, default=0, help='spring constant')
     parser.add_argument('--scaling', type=int, action='append', nargs=2, metavar=('lower','upper'), help='scaling group range')
     parser.add_argument('--cb', action="store_true", help='mainchain + CB mode')
+    parser.add_argument('--dummy', action="store_true", help='add dummy C')
     args = parser.parse_args()
 
     os.makedirs(OUTDIR, exist_ok=True)
@@ -105,7 +106,7 @@ def main():
                         group_indeces,
                         CONNECT_INDECES, INIT_RADIUSES, 
                         discriptor_generator.INPUTDIMS_ONLY_DESCRIPTOR, EACH_N_ATOMS,
-                        init_structs)
+                        init_structs, args.dummy)
 
     trj = []
     t = 0
