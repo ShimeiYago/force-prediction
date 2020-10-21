@@ -67,6 +67,9 @@ class GROParser:
 
         self._arrange_order()
 
+        self.init_angles = self._cal_init_angles(self.struct)
+
+
     def _cal_adjacent(self, cutoff_radius):
         # define indeces
         adjacent_indeces = []  # adjacent_indeces[0] = [back-chains, front-chains, floatN, floatCA, ...]
@@ -257,3 +260,51 @@ class GROParser:
             self.adjacent_indeces.append(ADJACENT_INDECES[i])
             self.ab_indeces.append(AB_INDECES[i])
             self.connects_indeces.append(CONNECT_INDECES[i])
+
+
+
+    def _cal_init_angles(self, init_struct):
+        discriptors = np.tile(init_struct, (self.n_atoms, 1)).reshape(self.n_atoms, -1, 3)
+        discriptors = discriptors - discriptors.transpose(1, 0, 2)
+
+        n_index_list = list(range(self.slice_indeces['N'][0], self.slice_indeces['N'][1]))
+        c_index_list = list(range(self.slice_indeces['C'][0], self.slice_indeces['C'][1]))
+        ca_index_list = list(range(self.slice_indeces['CA'][0], self.slice_indeces['CA'][1]))
+
+        init_angles = []
+        for i, d in enumerate(discriptors):
+            atom = self.atom_align[i]
+
+            if atom == 'N' and i != n_index_list[0]:
+                resid_i = n_index_list.index(i)
+                c_index = c_index_list[resid_i-1]
+                ca_index = ca_index_list[resid_i]
+                angle = self._cal_angle(d[ca_index], d[c_index])
+
+            elif atom == 'CA':
+                resid_i = ca_index_list.index(i)
+                c_index = c_index_list[resid_i]
+                n_index = n_index_list[resid_i]
+                angle = self._cal_angle(d[c_index], d[n_index])
+
+            elif atom == 'C' and i != c_index_list[-1]:
+                resid_i = c_index_list.index(i)
+                ca_index = ca_index_list[resid_i]
+                n_index = n_index_list[resid_i+1]
+                angle = self._cal_angle(d[ca_index], d[n_index])
+
+            else:
+                angle = np.nan
+
+            init_angles.append(angle)
+
+        return init_angles
+
+
+    def _cal_angle(self, u, v):
+        inn = np.inner(u, v)
+        norm = np.sqrt(np.sum(np.square(u))) * np.sqrt(np.sum(np.square(v)))
+
+        cos_theta = inn / norm
+        deg = np.rad2deg(np.arccos(np.clip(cos_theta, -1.0, 1.0)))
+        return deg

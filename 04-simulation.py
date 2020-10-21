@@ -17,8 +17,6 @@ DATASETDIR = "workspace/01-make-datasets"
 CUTOFF_RADIUS = 1.0
 OUTDIR = "workspace/04-simulate"
 
-SAVE_DISTANCE = 1
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -35,7 +33,8 @@ def main():
     parser.add_argument('--len', type=int, default=500, help='outputed trj length')
     parser.add_argument('--save_distance', type=int, default=1, help='save each steps')
     parser.add_argument('-o', type=str, default="trj", help='output name')
-    parser.add_argument('-k', type=float, default=0, help='spring constant')
+    parser.add_argument('--k_length', type=float, default=0, help='bond length constant')
+    parser.add_argument('--k_angle', type=float, default=0, help='bond angle constant')
     parser.add_argument('--scaling', type=int, action='append', nargs=2, metavar=('lower','upper'), help='scaling group range')
     parser.add_argument('--cb', action="store_true", help='mainchain + CB mode')
     parser.add_argument('--dummy', action="store_true", help='add dummy C')
@@ -58,6 +57,7 @@ def main():
     REARRANGED_INDECES = groparser.rearranged_indeces
     RESID_GROUP_INDECES = groparser.resid_group_indeces
     TARGET_ATOM_INDECES_FOR_XVG = groparser.target_atom_indeces_for_xvg
+    INIT_ANGLES = groparser.init_angles
 
     # ## init strcuct ## #
     init_structs = ReadXVGs(TARGET_ATOM_INDECES_FOR_XVG, ARRANGED_INDECES)._read_xvg(args.coord)[args.init_time:args.init_time+2].compute()
@@ -101,12 +101,13 @@ def main():
         group_indeces.append(indeces)
 
     # ## simulate ## #
-    leapfrog = LeapFrog(discriptor_generator, models, normalization, args.k,
+    leapfrog = LeapFrog(discriptor_generator, models, normalization,
+                        args.k_length, args.k_angle,
                         N_ATOMS, MAINCHAIN, SLICE_INDECES, ATOM_ALIGN,
                         group_indeces,
                         CONNECT_INDECES, INIT_RADIUSES, 
                         discriptor_generator.INPUTDIMS_ONLY_DESCRIPTOR, EACH_N_ATOMS,
-                        init_structs, args.dummy)
+                        init_structs, args.dummy, INIT_ANGLES)
 
     trj = []
     t = 0
