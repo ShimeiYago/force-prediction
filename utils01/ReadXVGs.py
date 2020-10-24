@@ -5,17 +5,18 @@ import numpy as np
 
 
 class ReadXVGs:
-    def __init__(self, target_atom_indeces, arranged_indeces: list):
+    def __init__(self, target_atom_indeces, arranged_indeces: list, skip: int):
         self.target_atom_indeces = target_atom_indeces
         self.arranged_indeces = arranged_indeces
+        self.skip = skip
 
     def __call__(self, fplist: list):
         coords_list, forces_list = [], []
         for fp_coord, fp_force, init_time, maxlen in fplist:
             init_time = int(init_time)
             maxlen = int(maxlen)
-            coord = self._read_xvg(fp_coord)[init_time:][:maxlen]
-            force = self._read_xvg(fp_force)[init_time:][:maxlen]
+            coord = self._read_xvg(fp_coord)[init_time:][[i*self.skip for i in range(maxlen)]]
+            force = self._read_xvg(fp_force)[init_time:][[i*self.skip for i in range(maxlen)]]
 
             # check shape
             self._check_shape(coord.shape, force.shape, fp_coord, fp_force)

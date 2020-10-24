@@ -38,6 +38,7 @@ def main():
                         help='batchsize for one process (recommend: the Number of Frames, divided by any natural number)')
     parser.add_argument('--cb', action="store_true", help='mainchain + CB mode')
     parser.add_argument('--only_terminal_rate', type=float, default=0.0, help='to inclease both terminal datasets')
+    parser.add_argument('--skip', type=int, default=1, help='read data each skip')
     args = parser.parse_args()
 
     # ## check output file existing ## #
@@ -66,7 +67,7 @@ def main():
 
     # ## read data ## #
     print('--- Reading trajectory ---')
-    readxvgs = ReadXVGs(TARGET_ATOM_INDECES_FOR_XVG, ARRANGED_INDECES)
+    readxvgs = ReadXVGs(TARGET_ATOM_INDECES_FOR_XVG, ARRANGED_INDECES, args.skip)
     train_coords, train_forces = readxvgs(args.inputs)
 
     # val data
