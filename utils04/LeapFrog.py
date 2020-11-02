@@ -134,17 +134,14 @@ class LeapFrog:
             u = d[index1]
             v = d[index2]
 
-            r_u = np.linalg.norm(u, ord=2)
-            r_v = np.linalg.norm(v, ord=2)
-
             angle = self._cal_angle(u, v)
             diff_sin = np.sin(np.deg2rad(init_angle - angle))
 
             f_unit_vec1 = self._cal_straint_unit_vec(u, v)
             f_unit_vec2 = self._cal_straint_unit_vec(v, u)
 
-            f_vec1 = self.k_angle * r_u**2 * diff_sin * f_unit_vec1 / 2
-            f_vec2 = self.k_angle * r_v**2 * diff_sin * f_unit_vec2 / 2
+            f_vec1 = self.k_angle * diff_sin * f_unit_vec1 / 2
+            f_vec2 = self.k_angle * diff_sin * f_unit_vec2 / 2
 
             angle_straint_forces[index1] = np.add(angle_straint_forces[index1], f_vec1)
             angle_straint_forces[index2] = np.add(angle_straint_forces[index2], f_vec2)

@@ -5,7 +5,7 @@ import numpy as np
 
 
 class ReadXVGs:
-    def __init__(self, target_atom_indeces, arranged_indeces: list, skip: int):
+    def __init__(self, target_atom_indeces, arranged_indeces: list, skip=1):
         self.target_atom_indeces = target_atom_indeces
         self.arranged_indeces = arranged_indeces
         self.skip = skip
