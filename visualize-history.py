@@ -53,9 +53,9 @@ def main():
         ax.plot(epochs, loss, label='train')
         ax.plot(epochs, val_loss, label='validation')
         plt.xlabel('epoch')
-        plt.ylabel('loss')
+        plt.ylabel('Error of force ($kJ$ $mol^{-1}$ $nm^{-1}$)')
         plt.legend(bbox_to_anchor=(1, 1), loc='upper right', borderaxespad=0)
-        plt.savefig(outpath)
+        plt.savefig(outpath, bbox_inches="tight")
         plt.close()
 
 
