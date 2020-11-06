@@ -53,7 +53,6 @@ def main():
     AB_INDECES = groparser.ab_indeces
     ATOM_ALIGN = groparser.atom_align
     CONNECT_INDECES = groparser.connects_indeces
-    INIT_RADIUSES = groparser.init_radiuses
     REARRANGED_INDECES = groparser.rearranged_indeces
     RESID_GROUP_INDECES = groparser.resid_group_indeces
     TARGET_ATOM_INDECES_FOR_XVG = groparser.target_atom_indeces_for_xvg
@@ -62,6 +61,11 @@ def main():
     # ## init strcuct ## #
     init_structs = ReadXVGs(TARGET_ATOM_INDECES_FOR_XVG, ARRANGED_INDECES)._read_xvg(args.coord)[args.init_time:args.init_time+2].compute()
     init_structs = init_structs[:, ARRANGED_INDECES, :]
+
+    # ## init radius and angle ## #
+    groparser = GROParser(args.gro, CUTOFF_RADIUS, args.cb, init_structs[0][REARRANGED_INDECES, :])
+    INIT_RADIUSES = groparser.init_radiuses
+    INIT_ANGLES = groparser.init_angles
 
     # ## discriptor generator ## #
     discriptor_generator = DiscriptorGenerator(

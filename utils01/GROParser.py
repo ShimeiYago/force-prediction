@@ -8,7 +8,7 @@ MAINCHAIN_CONVERT = {'OT1': 'O'}
 
 
 class GROParser:
-    def __init__(self, grofile_path, cutoff_radius, cb_mode):
+    def __init__(self, grofile_path, cutoff_radius, cb_mode, init_struct=None):
         if cb_mode:
             self.mainchains = MAINCHAIN_CB
         else:
@@ -52,7 +52,10 @@ class GROParser:
                 self.resid_group_indeces[resid].append(i)
                 i += 1
 
-        self.struct = np.array(self.struct)
+        if init_struct is None:
+            self.struct = np.array(self.struct)
+        else:
+            self.struct = init_struct
 
         #  ## n atoms ## #
         self.n_atoms = len(self.atom_align)
