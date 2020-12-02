@@ -26,6 +26,15 @@ class DiscriptorGenerator:
         self.SLICE_INDECES = slice_indeces
         self.AB_INDECES = ab_indeces
 
+        # amino acid 関連
+        amino_set = set([x[0] for x in resid_dict.values()])
+        amino_list = list(amino_set)
+        amino_to_int = {amino: i for i, amino in enumerate(amino_list)}
+        amino_number_list = [amino_to_int[x[0]] for x in resid_dict.values()]
+        self.AMINO_ONEHOT = np.identity(len(amino_list))[amino_number_list]
+
+
+        # index調整
         self.ADJACENT_INDECES, self.MAX_N_ADJACENT, self.INPUTDIMS_ONLY_DESCRIPTOR, self.INPUTDIMS \
             = self._rewrite_indeces(adjacent_indeces, atom_align)
 
@@ -45,9 +54,6 @@ class DiscriptorGenerator:
         z = np.sqrt(R_DUMMY_CN**2 - x**2 - y**2)
         self.dummy_n = np.array([x, y, z])
 
-        # amino acid
-        self.RESID_DICT = resid_dict
-
 
     def _rewrite_indeces(self, adjacent_indeces, atom_align):
         # max_n_adjacent
@@ -58,11 +64,13 @@ class DiscriptorGenerator:
             for n in range(len(adjacent_indeces[0])):
                 max_n_adjacent[atom].append(max([len(x[n]) for x in tmp_adjacent_indeces]))
 
-        # inputdim_only_descriptor （これはresidueのonehotは含まれない。つまり実際ののinputdimは+309）
+        # inputdim_only_descriptor （これはamino-acidのonehotは含まれない。つまり実際ののinputdimは+309）
         inputdims_only_descriptor = {atom: sum(li) * 4 for atom, li in max_n_adjacent.items()}
         max_inputdim_only = max([dim for dim in inputdims_only_descriptor.values()])
 
-        inputdims = {atom: dims+self.EACH_N_ATOMS[atom] for atom, dims in inputdims_only_descriptor.items()}
+        # inputdims = {atom: dims+self.EACH_N_ATOMS[atom] for atom, dims in inputdims_only_descriptor.items()}
+        inputdims = {atom: dims+self.AMINO_ONEHOT.shape[1] for atom, dims in inputdims_only_descriptor.items()} 
+
 
         # maxになるように自分自身のindexで埋める
         new_adjacent_indeces = adjacent_indeces
@@ -174,10 +182,11 @@ class DiscriptorGenerator:
 
                     inputdim_only = self.INPUTDIMS_ONLY_DESCRIPTOR[atom]
 
-                    residue_onehot = np.tile(np.eye(self.EACH_N_ATOMS[atom]), part_length).transpose(1, 0)
+                    # residue_onehots = np.tile(np.eye(self.EACH_N_ATOMS[atom]), part_length).transpose(1, 0)
+                    amino_onehots = np.tile(self.AMINO_ONEHOT, (part_length, 1))
 
                     x = discriptors[:, atom_indeces_l:atom_indeces_u, :inputdim_only].reshape(-1, inputdim_only)
-                    x = np.concatenate([x, residue_onehot], axis=1)
+                    x = np.concatenate([x, amino_onehots], axis=1)
                     if only_terminal:
                         if atom == 'N':
                             x = x.reshape(part_length, self.EACH_N_ATOMS[atom], -1)[:, 0, :].reshape(-1, self.INPUTDIMS[atom])
