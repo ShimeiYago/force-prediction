@@ -19,11 +19,24 @@ class GROParser:
         self.atom_align = []
         self.struct = []
         self.target_atom_indeces_for_xvg = []  # xvgファイルからmainchainを取り出す用のindex
+        self.resid_dict = {}  # {resid_number:[name, atom_count]}
         with open(grofile_path) as f:
             f.readline()
             f.readline()
             i = 0
             for line in f:
+                # about resid
+                try:
+                    resid = int(line[0:5])
+                    residname = line[5:8]
+                except ValueError:
+                    continue
+
+                if resid in self.resid_dict:
+                    self.resid_dict[resid][1] = self.resid_dict[resid][1] + 1
+                else:
+                    self.resid_dict[resid] = [residname, 1]
+
                 # about atom
                 atom = line[12:15].strip()
                 if atom in self.mainchains or atom in MAINCHAIN_CONVERT:
@@ -41,16 +54,12 @@ class GROParser:
                     continue
 
                 # about resid
-                try:
-                    resid = int(line[0:5])
-                except ValueError:
-                    continue
-
                 if resid not in self.resid_group_indeces:
                     self.resid_group_indeces[resid] = []
 
                 self.resid_group_indeces[resid].append(i)
                 i += 1
+
 
         if init_struct is None:
             self.struct = np.array(self.struct)

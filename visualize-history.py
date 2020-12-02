@@ -12,6 +12,8 @@ INPUTDIR03 = "workspace/03-learning"
 
 plt.rcParams["font.size"] = 18
 
+FORCE_CONVETER = 0.0239
+
 def main():
     # load 02 data
     historydict02 = load_history_csv(glob.glob(INPUTDIR02 + '/*/*.csv'))
@@ -34,6 +36,7 @@ def main():
         plt.savefig(outpath)
 
     # plot 03
+    plots = []
     for outpath, li in historydict03.items():
         atom, history = li
 
@@ -46,14 +49,23 @@ def main():
         loss = history[0]
         val_loss = history[1]
 
+        # kJ/mol/nm -> kcal/mol/A
+        loss = loss * FORCE_CONVETER
+        val_loss = val_loss * FORCE_CONVETER
+
         epochs = range(1, len(loss)+1)
 
+        plots.append([outpath, loss, val_loss, epochs])
+
+    ymax = np.max(np.array([np.max(np.array([loss, val_loss])) for _, loss, val_loss, _ in plots]))
+    for outpath, loss, val_loss, epochs in plots:
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(epochs, loss, label='train')
         ax.plot(epochs, val_loss, label='validation')
         plt.xlabel('epoch')
-        plt.ylabel('Error of force ($kJ$ $mol^{-1}$ $nm^{-1}$)')
+        plt.ylabel('Error of force ($kcal$ $mol^{-1}$ $\AA^{-1}$)')
+        plt.ylim(0, ymax*1.05)
         plt.legend(bbox_to_anchor=(1, 1), loc='upper right', borderaxespad=0)
         plt.savefig(outpath, bbox_inches="tight")
         plt.close()

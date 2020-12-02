@@ -57,6 +57,7 @@ def main():
     AB_INDECES = groparser.ab_indeces
     ATOM_ALIGN = groparser.atom_align
     TARGET_ATOM_INDECES_FOR_XVG = groparser.target_atom_indeces_for_xvg
+    RESID_DICT = groparser.resid_dict
 
     # print target atoms
     print('Traget Atoms:', end="")
@@ -99,7 +100,7 @@ def main():
     discriptor_generator = DiscriptorGenerator(
         args.o, batchsize,
         MAINCHAIN, N_ATOMS, EACH_N_ATOMS, SLICE_INDECES,
-        ADJACENT_INDECES, AB_INDECES, ATOM_ALIGN,
+        ADJACENT_INDECES, AB_INDECES, ATOM_ALIGN, RESID_DICT,
         EXPLANATORY_NAME, RESPONSE_NAME)
 
     # input dims

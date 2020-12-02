@@ -14,7 +14,7 @@ PSI_DUMMY = -54
 class DiscriptorGenerator:
     def __init__(self, outpath, batchsize,
                  mainchain, n_atoms, each_n_atoms, slice_indeces,
-                 adjacent_indeces, ab_indeces, atom_align,
+                 adjacent_indeces, ab_indeces, atom_align, resid_dict,
                  EXPLANATORY_NAME, RESPONSE_NAME):
 
         self.OUTPATH = outpath
@@ -45,6 +45,8 @@ class DiscriptorGenerator:
         z = np.sqrt(R_DUMMY_CN**2 - x**2 - y**2)
         self.dummy_n = np.array([x, y, z])
 
+        # amino acid
+        self.RESID_DICT = resid_dict
 
 
     def _rewrite_indeces(self, adjacent_indeces, atom_align):
