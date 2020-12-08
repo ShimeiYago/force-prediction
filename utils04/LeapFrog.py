@@ -37,6 +37,8 @@ class LeapFrog:
 
         self.dummy_flag = dummy_flag
 
+        self.AMINO_ONEHOT = discriptor_generator.AMINO_ONEHOT
+
     def __call__(self, pre_struct, current_struct):
         veloc = np.subtract(current_struct, pre_struct) / DT + np.divide(self._cal_force(current_struct), self.weights.reshape(-1, 1)) * DT
         alphas = self._cal_alpha(veloc)
@@ -53,8 +55,10 @@ class LeapFrog:
         for atom in self.MAINCHAIN:
             i, j = self.SLICE_INDECES[atom]
             inputdim_only_descriptor = self.INPUTDIMS_ONLY_DESCRIPTOR[atom]
-            residue_onehot = np.eye(self.EACH_N_ATOMS[atom])
-            X = np.hstack([discriptor[i:j, :inputdim_only_descriptor], residue_onehot])
+            # residue_onehot = np.eye(self.EACH_N_ATOMS[atom])
+            # X = np.hstack([discriptor[i:j, :inputdim_only_descriptor], residue_onehot])
+            amino_onehot = self.AMINO_ONEHOT
+            X = np.hstack([discriptor[i:j, :inputdim_only_descriptor], amino_onehot])
             force = self.model[atom].predict(X)
             y_mean, y_std = self.normalization[atom]
             force = np.add(np.multiply(force, y_std), y_mean)
