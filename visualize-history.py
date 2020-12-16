@@ -41,7 +41,10 @@ def main():
         atom, history = li
 
         # root and denormalize
-        mean, std = get_mean_std(outpath, atom)
+        try:
+            mean, std = get_mean_std(outpath, atom)
+        except OSError:
+            continue
         history = np.sqrt(history)
         history = np.add(np.multiply(history, std), mean)
 

@@ -6,6 +6,9 @@ MAINCHAIN_CB = ['N', 'CA', 'CB', 'C', 'O']
 MAINCHAIN = ['N', 'CA', 'C', 'O']
 MAINCHAIN_CONVERT = {'OT1': 'O'}
 
+LEN_CHAIN = 40
+N_FLOAT = 30
+
 
 class GROParser:
     def __init__(self, grofile_path, cutoff_radius, cb_mode, init_struct=None):
@@ -75,18 +78,18 @@ class GROParser:
             self.eachatom_indeces[atom] = [i for i in range(self.n_atoms) if self.atom_align[i] == atom]
         self.each_n_atoms = {atom: len(indeces) for atom, indeces in self.eachatom_indeces.items()}
 
-        self._cal_adjacent(cutoff_radius)
+        self._cal_adjacent()
 
         self._arrange_order()
 
         self.init_angles = self._cal_init_angles(self.struct)
 
 
-    def _cal_adjacent(self, cutoff_radius):
+    def _cal_adjacent(self):
         # define indeces
         adjacent_indeces = []  # adjacent_indeces[0] = [back-chains, front-chains, floatN, floatCA, ...]
         ab_indeces = []  # [index_a, index_b]
-        max_n_adjacent = [0] * (len(self.mainchains) + 2)
+        max_n_adjacent = [LEN_CHAIN, LEN_CHAIN] + [0] * len(self.mainchains)
         connects_indeces = []
         self.init_radiuses = []
         for i in range(self.n_atoms):
@@ -106,6 +109,7 @@ class GROParser:
                     index_b = frontchain_indeces[1]
                 else:
                     print('Error: define a, b, and connects')
+                    print(self.atom_align)
                     sys.exit()
 
                 if len(backchain_indeces) > 0:
@@ -157,39 +161,15 @@ class GROParser:
             ab_indeces.append([index_a, index_b])
 
             # cut back indeces
-            for j in range(len(backchain_indeces)):
-                grobal_idx = backchain_indeces[j]
-                if radiuses[grobal_idx] <= cutoff_radius:
-                    continue
-
-                backchain_indeces = backchain_indeces[:j]
-
-                # cut CB
-                backchain_indeces = [x for x in backchain_indeces if self.atom_align[grobal_idx] != 'CB']
-
-                # if self.atom_align[grobal_idx] == "O" and radiuses[grobal_idx-1] <= cutoff_radius:
-                #     backchain_indeces.append(grobal_idx)  # "O"
-                #     backchain_indeces.append(grobal_idx-1)  # "C"
-
-                break
+            backchain_indeces = backchain_indeces[:LEN_CHAIN]
 
             # cut front indeces
-            for j in range(len(frontchain_indeces)):
-                grobal_idx = frontchain_indeces[j]
-                if radiuses[grobal_idx] <= cutoff_radius:
-                    continue
-
-                frontchain_indeces = frontchain_indeces[:j]
-
-                # cut CB
-                frontchain_indeces = [x for x in frontchain_indeces if self.atom_align[grobal_idx] != 'CB']
-
-                break
+            frontchain_indeces = frontchain_indeces[:LEN_CHAIN]
 
             # floats indeces
             float_indeces = [
                 j for j in range(self.n_atoms)
-                if (j not in backchain_indeces+frontchain_indeces+[i]) and radiuses[j] <= cutoff_radius]
+                if (j not in backchain_indeces+frontchain_indeces+[i])]
 
             float_indeces = [float_indeces[j] for j in np.argsort(radiuses[float_indeces])]  # sort
 
@@ -199,11 +179,9 @@ class GROParser:
 
             float_indeces = []
             for atom in self.mainchains:
-                float_indeces.append(float_indeces_eachatom[atom])
+                float_indeces.append(float_indeces_eachatom[atom][:N_FLOAT])
 
             # update max_n_adjacent
-            max_n_adjacent[0] = max(max_n_adjacent[0], len(backchain_indeces))
-            max_n_adjacent[1] = max(max_n_adjacent[1], len(frontchain_indeces))
             for j, float_indeces_one_atom in enumerate(float_indeces):
                 max_n_adjacent[j+2] = max(max_n_adjacent[j+2], len(float_indeces_one_atom))
 

@@ -120,6 +120,11 @@ def main():
     current_struct = init_structs[1]
 
     for i in range(1, args.len*args.save_distance):
+        # update adjacent_indeces
+        adjacent_indeces = GROParser(args.gro, CUTOFF_RADIUS, args.cb, current_struct[REARRANGED_INDECES, :]).adjacent_indeces
+        discriptor_generator.update_adjacent_indeces(adjacent_indeces)
+        leapfrog.update_discriptor_generator(discriptor_generator)
+
         next_struct = leapfrog(pre_struct, current_struct)
 
         if (i+1)%args.save_distance == 0:

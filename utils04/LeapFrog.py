@@ -36,6 +36,9 @@ class LeapFrog:
         self.T2s = self._cal_KE2(init_veloc)
 
         self.dummy_flag = dummy_flag
+    
+    def update_discriptor_generator(self, discriptor_generator):
+        self.discriptor_generator = discriptor_generator
 
     def __call__(self, pre_struct, current_struct):
         veloc = np.subtract(current_struct, pre_struct) / DT + np.divide(self._cal_force(current_struct), self.weights.reshape(-1, 1)) * DT

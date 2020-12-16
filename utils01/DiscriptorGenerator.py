@@ -25,6 +25,7 @@ class DiscriptorGenerator:
         self.EACH_N_ATOMS = each_n_atoms
         self.SLICE_INDECES = slice_indeces
         self.AB_INDECES = ab_indeces
+        self.ATOM_ALIGN = atom_align
 
         self.ADJACENT_INDECES, self.MAX_N_ADJACENT, self.INPUTDIMS_ONLY_DESCRIPTOR, self.INPUTDIMS \
             = self._rewrite_indeces(adjacent_indeces, atom_align)
@@ -61,9 +62,16 @@ class DiscriptorGenerator:
         # inputdim_only_descriptor （これはresidueのonehotは含まれない。つまり実際ののinputdimは+309）
         inputdims_only_descriptor = {atom: sum(li) * 4 for atom, li in max_n_adjacent.items()}
         max_inputdim_only = max([dim for dim in inputdims_only_descriptor.values()])
+        self.max_inputdim_only = max_inputdim_only
 
         inputdims = {atom: dims+self.EACH_N_ATOMS[atom] for atom, dims in inputdims_only_descriptor.items()}
 
+        # new adjacent indeces
+        adjacent_indeces = self._new_adjacent_indeces(adjacent_indeces, atom_align, max_n_adjacent, max_inputdim_only)
+
+        return adjacent_indeces, max_n_adjacent, inputdims_only_descriptor, inputdims
+
+    def _new_adjacent_indeces(self, adjacent_indeces, atom_align, max_n_adjacent, max_inputdim_only):
         # maxになるように自分自身のindexで埋める
         new_adjacent_indeces = adjacent_indeces
         for i in range(len(adjacent_indeces)):
@@ -79,8 +87,11 @@ class DiscriptorGenerator:
                 adjacent_indeces_i = adjacent_indeces_i + adjacent_indeces[i][j]
             adjacent_indeces[i] = adjacent_indeces_i + ([i] * (max_inputdim_only // 4 - len(adjacent_indeces_i)))
 
-        adjacent_indeces = np.array(adjacent_indeces)
-        return adjacent_indeces, max_n_adjacent, inputdims_only_descriptor, inputdims
+        return np.array(adjacent_indeces)
+
+    def update_adjacent_indeces(self, adjacent_indeces):
+        adjacent_indeces = self._new_adjacent_indeces(adjacent_indeces, self.ATOM_ALIGN, self.MAX_N_ADJACENT, self.max_inputdim_only)
+        self.ADJACENT_INDECES = adjacent_indeces
 
 
     def __call__(self, coords, forces, groupname, only_terminal_rate=0.0):
